@@ -7,9 +7,9 @@
 
 import SwiftUI
 
+/// Pure display: the laptop owns the clock, the keyboard and loading the text.
 struct TypingView: View {
-    @State private var viewModel = TypingViewModel()
-    @FocusState private var isFocused: Bool
+    let viewModel: TypingViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 32) {
@@ -43,22 +43,12 @@ struct TypingView: View {
             }
         }
         .padding(60)
-        .frame(
-            minWidth: 800, idealWidth: 1000, maxWidth: .infinity,
-            minHeight: 400, idealHeight: 600, maxHeight: .infinity,
-            alignment: .topLeading
-        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color.white)
         .preferredColorScheme(.light)   // keeps "black = correct" readable
-        .focusable()
-        .focused($isFocused)
-        .focusEffectDisabled()
-        .onAppear { isFocused = true }
-        .task { await viewModel.loadNewText() }
-        .onKeyPress { press in handle(press) }
     }
 
-    // MARK: Header (timer / result)
+    // MARK: Header (loading / result)
 
     @ViewBuilder
     private var header: some View {
@@ -67,49 +57,17 @@ struct TypingView: View {
             case .loading:
                 Text("generating text...")
             case .finished:
-                Text("\(viewModel.wpm) wpm   ·   esc for new text")
+                Text("\(viewModel.wpm) wpm   ·   done")
             case .idle, .running:
-                Text("\(viewModel.timeRemaining)")
+                Text("")
             }
         }
         .font(.system(size: 32, weight: .semibold, design: .monospaced))
         .foregroundStyle(Color.orange)
-    }
-
-    // MARK: Keyboard
-
-    private func handle(_ press: KeyPress) -> KeyPress.Result {
-        if press.key == .escape {
-            viewModel.reset()
-            return .handled
-        }
-
-        if isBackspace(press) {
-            viewModel.deleteLast()
-            return .handled
-        }
-
-        guard press.modifiers.isDisjoint(with: [.command, .control]),
-              press.characters.count == 1,
-              let character = press.characters.first,
-              character == " " || character.isLetter || character.isNumber
-                || character.isPunctuation || character.isSymbol
-        else { return .ignored }
-
-        viewModel.type(character)
-        return .handled
-    }
-
-    /// The Mac Backspace key sends U+007F, which SwiftUI reports as `.deleteForward`
-    /// rather than `.delete`, so accept both (plus the raw characters) to be safe.
-    private func isBackspace(_ press: KeyPress) -> Bool {
-        press.key == .delete
-            || press.key == .deleteForward
-            || press.characters == "\u{7F}"
-            || press.characters == "\u{8}"
+        .frame(height: 40, alignment: .leading)
     }
 }
 
 #Preview {
-    TypingView()
+    TypingView(viewModel: TypingViewModel())
 }

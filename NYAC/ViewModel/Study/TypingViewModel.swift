@@ -14,11 +14,7 @@ final class TypingViewModel {
     /// Used when text generation isn't available. ✏️ Replace with your own text if you like.
     static let fallbackText = "The quick brown fox jumps over the lazy dog."
 
-    /// Test length in seconds.
-    static let duration = 300
-
     private(set) var status: TypingStatus = .loading
-    private(set) var timeRemaining = TypingViewModel.duration
     private(set) var wpm = 0
 
     /// Set when generation failed and the fallback text is being used.
@@ -26,8 +22,10 @@ final class TypingViewModel {
 
     private var test = TypingTest(text: "")
 
+    /// Called once when the whole text has been typed correctly. The laptop uses it to mark this tab as done.
+    @ObservationIgnored var onCompleted: (() -> Void)?
+
     @ObservationIgnored private let textService: any TextGenerating
-    @ObservationIgnored private var timerTask: Task<Void, Never>?
     @ObservationIgnored private var startDate: Date?
 
     init(textService: any TextGenerating = FoundationModelTextService()) {
@@ -53,10 +51,7 @@ final class TypingViewModel {
 
     /// Generates a new text and gets the game ready for the first keystroke.
     func loadNewText() async {
-        timerTask?.cancel()
-        timerTask = nil
         startDate = nil
-        timeRemaining = Self.duration
         wpm = 0
         notice = nil
         test = TypingTest(text: "")
@@ -95,34 +90,23 @@ final class TypingViewModel {
         Task { await loadNewText() }
     }
 
-    // MARK: Timer
+    // MARK: Progress
+    // The clock lives in the laptop. This view model only remembers when typing began (for WPM)
+    // and tells the laptop once the text is finished.
 
     private func start() {
         status = .running
         startDate = Date()
-
-        timerTask = Task { [weak self] in
-            while true {
-                try? await Task.sleep(for: .seconds(1))
-                guard !Task.isCancelled, let self else { return }
-                self.tick()
-            }
-        }
-    }
-
-    private func tick() {
-        timeRemaining -= 1
-        if timeRemaining <= 0 { finish() }
     }
 
     private func finish() {
-        timerTask?.cancel()
-        timerTask = nil
         status = .finished
 
         // Standard WPM: one "word" = 5 correct characters.
-        let elapsed = min(Date().timeIntervalSince(startDate ?? Date()), Double(Self.duration))
+        let elapsed = Date().timeIntervalSince(startDate ?? Date())
         let minutes = max(elapsed, 1) / 60
         wpm = Int((Double(test.correctCount) / 5) / minutes)
+
+        onCompleted?()
     }
 }

@@ -10,9 +10,8 @@ import Combine
 
 final class MinigameViewModel: ObservableObject {
 
-    // Observed by SwiftUI (HUD).
+    // Observed by SwiftUI (result label).
     @Published private(set) var state: MinigameState = .ready
-    @Published private(set) var secondsLeft = Int(MinigameConfig.timeLimit)
 
     // Read by the scene every frame. Deliberately not @Published: they change 60x a second.
     private(set) var rows: [Row] = []
@@ -20,7 +19,9 @@ final class MinigameViewModel: ObservableObject {
     private(set) var playerX: CGFloat = 0          // in cells, may sit between cells on a log
     private(set) var levelVersion = 0              // bumps whenever a new level is generated
 
-    private var timeRemaining = MinigameConfig.timeLimit
+    /// Called once when the player reaches the finish. The laptop uses it to mark this tab as done.
+    var onCompleted: (() -> Void)?
+
     private var restartCountdown: TimeInterval = 0
 
     init() {
@@ -53,7 +54,7 @@ final class MinigameViewModel: ObservableObject {
 
         playerRow = row
         playerX = x
-        if state == .ready { state = .playing }            // the first move starts the clock
+        if state == .ready { state = .playing }            // the first move starts the run
 
         resolveHazards()
         if state == .playing && playerRow == rows.count - 1 { finish(.won) }
@@ -65,7 +66,10 @@ final class MinigameViewModel: ObservableObject {
         let dt = min(deltaTime, 0.05)      // a long frame must not teleport cars through the chicken
 
         switch state {
-        case .ended:
+        case .ended(let outcome):
+            // Dying restarts the run after a short pause. A win is final: the laptop has marked
+            // this tab as done, so the run stays exactly as it is.
+            guard outcome != .won else { return }
             restartCountdown -= dt
             if restartCountdown <= 0 { startNewRun() }
 
@@ -80,12 +84,6 @@ final class MinigameViewModel: ObservableObject {
             advanceWorld(by: dt)
             if ridingLog { playerX += lane.direction.sign * lane.speed * CGFloat(dt) }
             resolveHazards()
-
-            guard state == .playing else { return }
-            timeRemaining -= dt
-            let seconds = max(0, Int(timeRemaining.rounded(.up)))
-            if seconds != secondsLeft { secondsLeft = seconds }
-            if timeRemaining <= 0 { finish(.timeUp) }
         }
     }
 
@@ -114,6 +112,7 @@ final class MinigameViewModel: ObservableObject {
     private func finish(_ outcome: Outcome) {
         state = .ended(outcome)
         restartCountdown = MinigameConfig.restartDelay
+        if outcome == .won { onCompleted?() }
     }
 
     private func startNewRun() {
@@ -121,9 +120,8 @@ final class MinigameViewModel: ObservableObject {
         levelVersion += 1
         playerRow = 0
         playerX = CGFloat(MinigameConfig.columns / 2) + 0.5    // middle cell of the start row
-        timeRemaining = MinigameConfig.timeLimit
-        secondsLeft = Int(MinigameConfig.timeLimit)
         restartCountdown = 0
         state = .ready
     }
 }
+

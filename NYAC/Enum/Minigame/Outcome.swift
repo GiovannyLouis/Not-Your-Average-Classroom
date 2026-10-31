@@ -7,5 +7,5 @@
 
 
 enum Outcome {
-    case won, hitByCar, drowned, timeUp
+    case won, hitByCar, drowned
 }
