@@ -31,6 +31,10 @@ final class LaptopViewModel {
  
     let minigame: MinigameViewModel
     let study: TypingViewModel
+
+    /// The minigame's SpriteKit scene. It lives here instead of in the view, so LaptopView can be
+    /// rebuilt as a plain struct (the parallax layer does that every frame) without recreating the scene.
+    let minigameScene: MinigameScene
  
     @ObservationIgnored private var timerTask: Task<Void, Never>?
     @ObservationIgnored private var endDate: Date?
@@ -39,6 +43,7 @@ final class LaptopViewModel {
     init(minigame: MinigameViewModel, study: TypingViewModel) {
         self.minigame = minigame
         self.study = study
+        self.minigameScene = MinigameScene(viewModel: minigame)
  
         // A feature only reports "I'm done". The laptop decides what that means for the run.
         minigame.onCompleted = { [weak self] in self?.markDone(.minigame) }

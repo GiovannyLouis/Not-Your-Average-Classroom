@@ -11,7 +11,7 @@ import SwiftUI
 struct NYACApp: App {
     var body: some Scene {
         WindowGroup {
-            LaptopView()
+            GameView()
         }
         .windowResizability(.contentSize)
     }
