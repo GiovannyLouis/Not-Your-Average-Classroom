@@ -12,14 +12,13 @@ import SwiftUI
 /// paused or rebuilt when you switch. This view is also the only place that reads the keyboard:
 /// it hands every key to the tab that is on screen and to nobody else.
 struct LaptopView: View {
-    @State private var viewModel: LaptopViewModel
-    @State private var minigameScene: MinigameScene
+    /// Owned by whoever shows the laptop. LaptopView itself stays cheap to create, because the
+    /// parallax layer rebuilds it every frame to move it.
+    let viewModel: LaptopViewModel
     @FocusState private var isFocused: Bool
  
-    init() {
-        let laptop = LaptopViewModel()
-        _viewModel = State(initialValue: laptop)
-        _minigameScene = State(initialValue: MinigameScene(viewModel: laptop.minigame))
+    init(viewModel: LaptopViewModel) {
+        self.viewModel = viewModel
     }
  
     var body: some View {
@@ -27,10 +26,16 @@ struct LaptopView: View {
             topBar
             screen
         }
+        .frame(width: LaptopLayout.size.width, height: LaptopLayout.size.height)
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
         .onAppear { isFocused = true }
+        // Nothing else in the game needs the keyboard, so if focus ever lands elsewhere
+        // (clicking a debug slider, say) take it straight back.
+        .onChange(of: isFocused) { _, focused in
+            if !focused { isFocused = true }
+        }
         .task { await viewModel.start() }
         .onKeyPress { press in handle(press) }
     }
@@ -90,7 +95,7 @@ struct LaptopView: View {
             TypingView(viewModel: viewModel.study)
                 .opacity(viewModel.activeTab == .study ? 1 : 0)
  
-            MinigameView(viewModel: viewModel.minigame, scene: minigameScene)
+            MinigameView(viewModel: viewModel.minigame, scene: viewModel.minigameScene)
                 .opacity(viewModel.activeTab == .minigame ? 1 : 0)
         }
         .frame(width: LaptopLayout.screenSize.width, height: LaptopLayout.screenSize.height)
@@ -184,5 +189,5 @@ struct LaptopView: View {
 }
  
 #Preview {
-    LaptopView()
+    LaptopView(viewModel: LaptopViewModel())
 }
