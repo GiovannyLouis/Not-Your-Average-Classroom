@@ -110,6 +110,8 @@ struct LaptopView: View {
             banner("You made it!")
         case .lost:
             banner("Time's up!")
+        case .caught:
+            banner("Caught!")
         case .preparing, .running:
             EmptyView()
         }

@@ -64,8 +64,8 @@ final class PeekViewModel {
     @ObservationIgnored private var lockedBox: CGRect?
     @ObservationIgnored private var missedFrames = 0
 
-    init() {
-        scene = ParallaxScene(size: CGSize(width: 900, height: 600))
+    init(lecturer: LecturerViewModel) {
+        scene = ParallaxScene(size: CGSize(width: 900, height: 600), lecturer: lecturer)
         scene.scaleMode = .resizeFill
 
         service.onFrame = { [weak self] frame in

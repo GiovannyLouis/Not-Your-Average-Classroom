@@ -12,4 +12,5 @@ enum LaptopState: Equatable {
     case running               // the shared clock is counting down and input is accepted
     case won                   // every tab is done
     case lost                  // the clock ran out before every tab was done
+    case caught                // the lecturer saw the player gaming
 }

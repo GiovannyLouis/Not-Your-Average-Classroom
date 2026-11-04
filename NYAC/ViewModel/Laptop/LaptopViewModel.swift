@@ -35,23 +35,31 @@ final class LaptopViewModel {
     /// The minigame's SpriteKit scene. It lives here instead of in the view, so LaptopView can be
     /// rebuilt as a plain struct (the parallax layer does that every frame) without recreating the scene.
     let minigameScene: MinigameScene
+
+    /// The lecturer walking around the room. The laptop owns it because the laptop decides what it means:
+    /// gaming while the lecturer can see the screen ends the run.
+    let lecturer: LecturerViewModel
  
     @ObservationIgnored private var timerTask: Task<Void, Never>?
     @ObservationIgnored private var endDate: Date?
     @ObservationIgnored private var hasStarted = false
  
-    init(minigame: MinigameViewModel, study: TypingViewModel) {
+    init(minigame: MinigameViewModel, study: TypingViewModel, lecturer: LecturerViewModel) {
         self.minigame = minigame
         self.study = study
         self.minigameScene = MinigameScene(viewModel: minigame)
+        self.lecturer = lecturer
  
         // A feature only reports "I'm done". The laptop decides what that means for the run.
         minigame.onCompleted = { [weak self] in self?.markDone(.minigame) }
         study.onCompleted = { [weak self] in self?.markDone(.study) }
+
+        // The lecturer only reports that they started or stopped walking. Whether that gets the player caught is decided here.
+        lecturer.onStateChanged = { [weak self] in self?.checkCaught() }
     }
  
     convenience init() {
-        self.init(minigame: MinigameViewModel(), study: TypingViewModel())
+        self.init(minigame: MinigameViewModel(), study: TypingViewModel(), lecturer: LecturerViewModel())
     }
  
     // MARK: Lifecycle
@@ -71,6 +79,7 @@ final class LaptopViewModel {
     func switchTab() {
         guard state == .running else { return }
         activeTab = activeTab.next
+        checkCaught()          // switching to the game while the lecturer can see the screen is a mistake
     }
  
     func isDone(_ tab: LaptopTab) -> Bool {
@@ -108,11 +117,22 @@ final class LaptopViewModel {
         if completedTabs.count == LaptopTab.allCases.count { finish(.won) }
     }
  
+    // MARK: Lecturer
+
+    /// Gaming while the lecturer can see the screen ends the run. It is checked whenever either side changes:
+    /// the lecturer starts or stops walking, or the player switches tabs. Being on the game tab is what counts,
+    /// whether or not a key is being pressed.
+    private func checkCaught() {
+        guard state == .running, activeTab == .minigame, lecturer.state.canCatchPlayer else { return }
+        finish(.caught)
+    }
+
     // MARK: Shared clock
  
     private func startClock() {
         endDate = Date().addingTimeInterval(LaptopConfig.timeLimit)
         state = .running
+        lecturer.isActive = true
  
         timerTask = Task { [weak self] in
             while true {
@@ -137,5 +157,7 @@ final class LaptopViewModel {
         timerTask?.cancel()
         timerTask = nil
         state = result
+        lecturer.isActive = false
     }
 }
+
