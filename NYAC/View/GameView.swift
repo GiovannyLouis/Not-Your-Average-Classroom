@@ -12,8 +12,15 @@ import SpriteKit
 /// and the laptop floats in front of it as the near layer. Debug panel and camera preview sit on top
 /// and each has its own on/off switch.
 struct GameView: View {
-    @State private var viewModel = PeekViewModel()
-    @State private var laptop = LaptopViewModel()
+    @State private var viewModel: PeekViewModel
+    @State private var laptop: LaptopViewModel
+
+    init() {
+        // The laptop owns the lecturer (it decides what being seen means); the peek scene only draws it.
+        let laptop = LaptopViewModel()
+        _laptop = State(initialValue: laptop)
+        _viewModel = State(initialValue: PeekViewModel(lecturer: laptop.lecturer))
+    }
 
     var body: some View {
         ZStack {
