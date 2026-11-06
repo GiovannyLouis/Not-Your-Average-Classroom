@@ -8,7 +8,7 @@
 import SwiftUI
 import SpriteKit
 
-/// Pure display: the laptop owns the clock, the keyboard and the scene.
+/// Pure display: the game owns the clock, the laptop owns the keyboard and the scene.
 struct MinigameView: View {
     @ObservedObject var viewModel: MinigameViewModel
     let scene: MinigameScene

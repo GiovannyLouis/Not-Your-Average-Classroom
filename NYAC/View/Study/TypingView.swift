@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// Pure display: the laptop owns the clock, the keyboard and loading the text.
+/// Pure display: the game owns the clock and loading the text, the laptop owns the keyboard.
 struct TypingView: View {
     let viewModel: TypingViewModel
 

@@ -7,18 +7,20 @@
 
 import SwiftUI
  
-/// The laptop: a tab bar with the shared clock on top, and a screen that holds Study and Minigame.
+/// The laptop: a tab bar with the game's clock on top, and a screen that holds Study and Minigame.
 /// Both tabs are always in the view tree (the hidden one is just transparent), so neither is
 /// paused or rebuilt when you switch. This view is also the only place that reads the keyboard:
 /// it hands every key to the tab that is on screen and to nobody else.
 struct LaptopView: View {
     /// Owned by whoever shows the laptop. LaptopView itself stays cheap to create, because the
     /// parallax layer rebuilds it every frame to move it.
-    let viewModel: LaptopViewModel
+    let game: GameViewModel
     @FocusState private var isFocused: Bool
+
+    private var laptop: LaptopViewModel { game.laptop }
  
-    init(viewModel: LaptopViewModel) {
-        self.viewModel = viewModel
+    init(game: GameViewModel) {
+        self.game = game
     }
  
     var body: some View {
@@ -36,7 +38,6 @@ struct LaptopView: View {
         .onChange(of: isFocused) { _, focused in
             if !focused { isFocused = true }
         }
-        .task { await viewModel.start() }
         .onKeyPress { press in handle(press) }
     }
  
@@ -65,8 +66,8 @@ struct LaptopView: View {
     }
  
     private func tabLabel(for tab: LaptopTab) -> some View {
-        let isActive = viewModel.activeTab == tab
-        let isDone = viewModel.isDone(tab)
+        let isActive = laptop.activeTab == tab
+        let isDone = game.isDone(tab.objective)
  
         return Text(isDone ? "\(title(for: tab)) ✓" : title(for: tab))
             .font(.system(size: 16, weight: .semibold, design: .monospaced))
@@ -84,7 +85,7 @@ struct LaptopView: View {
     }
  
     private var timeText: String {
-        let seconds = viewModel.secondsLeft
+        let seconds = game.secondsLeft
         return String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
  
@@ -92,50 +93,26 @@ struct LaptopView: View {
  
     private var screen: some View {
         ZStack {
-            TypingView(viewModel: viewModel.study)
-                .opacity(viewModel.activeTab == .study ? 1 : 0)
- 
-            MinigameView(viewModel: viewModel.minigame, scene: viewModel.minigameScene)
-                .opacity(viewModel.activeTab == .minigame ? 1 : 0)
+            TypingView(viewModel: laptop.study)
+                .opacity(laptop.activeTab == .study ? 1 : 0)
+
+            MinigameView(viewModel: laptop.minigame, scene: laptop.minigameScene)
+                .opacity(laptop.activeTab == .minigame ? 1 : 0)
         }
         .frame(width: LaptopLayout.screenSize.width, height: LaptopLayout.screenSize.height)
         .clipped()
-        .overlay { resultLabel }
     }
- 
-    @ViewBuilder
-    private var resultLabel: some View {
-        switch viewModel.state {
-        case .won:
-            banner("You made it!")
-        case .lost:
-            banner("Time's up!")
-        case .caught:
-            banner("Caught!")
-        case .preparing, .running:
-            EmptyView()
-        }
-    }
- 
-    private func banner(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 34, weight: .heavy, design: .rounded))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 12)
-            .background(Color.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 12))
-    }
- 
+
     // MARK: - Keyboard
  
     private func handle(_ press: KeyPress) -> KeyPress.Result {
         // Tab always belongs to the laptop. It never reaches either tab.
         if press.key == .tab {
-            if press.phase == .down { viewModel.switchTab() }
+            if press.phase == .down { laptop.switchTab() }
             return .handled
         }
- 
-        switch viewModel.activeTab {
+
+        switch laptop.activeTab {
         case .study:    return handleStudy(press)
         case .minigame: return handleMinigame(press)
         }
@@ -159,13 +136,13 @@ struct LaptopView: View {
             }
         }
  
-        if press.phase == .down { viewModel.move(direction) }
+        if press.phase == .down { laptop.move(direction) }
         return .handled
     }
  
     private func handleStudy(_ press: KeyPress) -> KeyPress.Result {
         if isBackspace(press) {
-            viewModel.deleteLast()
+            laptop.deleteLast()
             return .handled
         }
  
@@ -176,7 +153,7 @@ struct LaptopView: View {
                 || character.isPunctuation || character.isSymbol
         else { return .ignored }
  
-        viewModel.type(character)
+        laptop.type(character)
         return .handled
     }
  
@@ -191,5 +168,5 @@ struct LaptopView: View {
 }
  
 #Preview {
-    LaptopView(viewModel: LaptopViewModel())
+    LaptopView(game: GameViewModel(settings: GameSettings()))
 }

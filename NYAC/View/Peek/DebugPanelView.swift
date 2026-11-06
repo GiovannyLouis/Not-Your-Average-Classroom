@@ -12,6 +12,7 @@ import SwiftUI
 /// only refresh this panel, not the whole game screen.
 struct DebugPanelView: View {
     let viewModel: PeekViewModel
+    let settings: GameSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -27,15 +28,15 @@ struct DebugPanelView: View {
 
             HStack {
                 Text("Threshold Y")
-                Slider(value: Bindable(viewModel).thresholdY, in: 0.2...0.8)
+                Slider(value: Bindable(settings).thresholdY, in: GameSettings.thresholdYRange)
                     .frame(width: 140)
-                Text(String(format: "%.2f", viewModel.thresholdY))
+                Text(String(format: "%.2f", settings.thresholdY))
                     .monospacedDigit()
             }
 
             HStack {
                 Text("Sensitivity")
-                Slider(value: Bindable(viewModel).sensitivity, in: 0.5...3)
+                Slider(value: Bindable(settings).sensitivity, in: GameSettings.sensitivityRange)
                     .frame(width: 140)
             }
 
