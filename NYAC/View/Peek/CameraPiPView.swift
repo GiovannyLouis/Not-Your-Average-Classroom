@@ -12,13 +12,14 @@ import SwiftUI
 /// (green rectangle + red center dot), other faces (dashed orange, ignored), and the y threshold line.
 struct CameraPiPView: View {
     let viewModel: PeekViewModel
+    let settings: GameSettings
 
     var body: some View {
         // Read everything here (not inside Canvas) so SwiftUI refreshes the view when it changes.
         let image = viewModel.cameraImage
         let box = viewModel.faceBox
         let others = viewModel.otherFaceBoxes
-        let thresholdY = viewModel.thresholdY
+        let thresholdY = settings.thresholdY
 
         ZStack {
             if let image {

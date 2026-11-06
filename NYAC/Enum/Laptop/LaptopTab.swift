@@ -12,6 +12,14 @@ enum LaptopTab: CaseIterable, Hashable {
     case study
     case minigame
 
+    /// The game objective this tab is about. The tab shows a check mark once it is done.
+    var objective: GameObjective {
+        switch self {
+        case .study:    return .study
+        case .minigame: return .minigame
+        }
+    }
+
     /// The tab the Tab key switches to (wraps around).
     var next: LaptopTab {
         let all = Self.allCases

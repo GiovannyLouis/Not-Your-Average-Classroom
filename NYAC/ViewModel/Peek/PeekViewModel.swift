@@ -34,16 +34,6 @@ final class PeekViewModel {
 
     let scene: ParallaxScene
 
-    /// Camera-image y where the modes switch (0 = bottom of the frame, 1 = top; 0.5 = halfway).
-    /// Face center above this line = peek, otherwise focus.
-    var thresholdY: CGFloat = 0.5
-
-    var sensitivity: CGFloat = 1.0
-
-    /// Overlay switches. They only hide the overlay; tracking keeps running underneath.
-    var showsDebugPanel = true
-    var showsCameraPiP = true
-
     private(set) var mode: HeadMode = .focus
     private(set) var headOffset: CGPoint = .zero
     private(set) var faceDetected = false
@@ -56,6 +46,9 @@ final class PeekViewModel {
 
     // MARK: - Private
 
+    /// The tuning set by default or by the player (y threshold, sensitivity). This view model only reads it.
+    private let settings: GameSettings
+
     @ObservationIgnored private let service = HeadTrackingService()
     @ObservationIgnored private var neutralX: CGFloat?
     @ObservationIgnored private var lastFaceX: CGFloat?
@@ -64,7 +57,8 @@ final class PeekViewModel {
     @ObservationIgnored private var lockedBox: CGRect?
     @ObservationIgnored private var missedFrames = 0
 
-    init(lecturer: LecturerViewModel) {
+    init(lecturer: LecturerViewModel, settings: GameSettings) {
+        self.settings = settings
         scene = ParallaxScene(size: CGSize(width: 900, height: 600), lecturer: lecturer)
         scene.scaleMode = .resizeFill
 
@@ -114,14 +108,14 @@ final class PeekViewModel {
         if neutralX == nil { neutralX = face.x }   // first detection auto-calibrates sideways
 
         // Plain threshold: the moment the center dot is above the line it's peek, otherwise focus.
-        mode = face.y > thresholdY ? .peek : .focus
+        mode = face.y > settings.thresholdY ? .peek : .focus
         scene.mode = mode
 
         var dx = face.x - (neutralX ?? face.x)
         if mirrorX { dx = -dx }                    // camera sees you mirrored: your right = smaller x
-        let dy = face.y - thresholdY               // Vision's y points up; the threshold is the vertical center
+        let dy = face.y - settings.thresholdY      // Vision's y points up; the threshold is the vertical center
 
-        let range = headRange / max(sensitivity, 0.01)
+        let range = headRange / max(settings.sensitivity, 0.01)
         headOffset = CGPoint(x: clamp(dx / range), y: clamp(dy / range))
         scene.headOffset = headOffset
     }

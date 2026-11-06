@@ -22,7 +22,7 @@ final class TypingViewModel {
 
     private var test = TypingTest(text: "")
 
-    /// Called once when the whole text has been typed correctly. The laptop uses it to mark this tab as done.
+    /// Called once when the whole text has been typed correctly. The game uses it to mark this objective as done.
     @ObservationIgnored var onCompleted: (() -> Void)?
 
     @ObservationIgnored private let textService: any TextGenerating
@@ -91,8 +91,8 @@ final class TypingViewModel {
     }
 
     // MARK: Progress
-    // The clock lives in the laptop. This view model only remembers when typing began (for WPM)
-    // and tells the laptop once the text is finished.
+    // The clock lives in the game. This view model only remembers when typing began (for WPM)
+    // and tells the game once the text is finished.
 
     private func start() {
         status = .running

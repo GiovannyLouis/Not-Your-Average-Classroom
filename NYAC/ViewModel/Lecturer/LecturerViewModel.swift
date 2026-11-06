@@ -11,7 +11,7 @@ import Observation
 /// Where the lecturer is and what they are doing: stay 5 seconds, walk 5 seconds to a random neighbor, repeat.
 ///
 /// This view model only moves the lecturer. What being at a given spot means for the player
-/// (getting caught) is decided by whoever owns it, which is the laptop.
+/// (getting caught) is decided by whoever owns it, which is the game.
 @MainActor
 @Observable
 final class LecturerViewModel {
@@ -25,10 +25,10 @@ final class LecturerViewModel {
         return min(timeInPhase / LecturerConfig.moveDuration, 1)
     }
 
-    /// The laptop turns this on when the run starts and off when it ends. The lecturer only walks while it is on.
+    /// The game turns this on when the run starts and off when it ends. The lecturer only walks while it is on.
     @ObservationIgnored var isActive = false
 
-    /// Called each time the lecturer starts or stops walking. The laptop uses it to check whether the player just got caught.
+    /// Called each time the lecturer starts or stops walking. The game uses it to check whether the player just got caught.
     @ObservationIgnored var onStateChanged: (() -> Void)?
 
     /// Seconds spent in the current stay or walk. Changes every frame, so it is not observed.

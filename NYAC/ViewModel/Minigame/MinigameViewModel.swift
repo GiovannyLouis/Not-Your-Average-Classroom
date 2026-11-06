@@ -19,7 +19,7 @@ final class MinigameViewModel: ObservableObject {
     private(set) var playerX: CGFloat = 0          // in cells, may sit between cells on a log
     private(set) var levelVersion = 0              // bumps whenever a new level is generated
 
-    /// Called once when the player reaches the finish. The laptop uses it to mark this tab as done.
+    /// Called once when the player reaches the finish. The game uses it to mark this objective as done.
     var onCompleted: (() -> Void)?
 
     private var restartCountdown: TimeInterval = 0
@@ -67,8 +67,8 @@ final class MinigameViewModel: ObservableObject {
 
         switch state {
         case .ended(let outcome):
-            // Dying restarts the run after a short pause. A win is final: the laptop has marked
-            // this tab as done, so the run stays exactly as it is.
+            // Dying restarts the run after a short pause. A win is final: the game has marked
+            // this objective as done, so the run stays exactly as it is.
             guard outcome != .won else { return }
             restartCountdown -= dt
             if restartCountdown <= 0 { startNewRun() }
@@ -124,4 +124,3 @@ final class MinigameViewModel: ObservableObject {
         state = .ready
     }
 }
-
