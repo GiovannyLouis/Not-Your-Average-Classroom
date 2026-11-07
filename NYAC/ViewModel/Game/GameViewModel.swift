@@ -30,6 +30,18 @@ final class GameViewModel {
     /// Which menu is open on top of the game. The game keeps running behind it.
     private(set) var menu: GameMenu = .closed
 
+    /// True while the game is getting ready (the study text is being written), before the countdown.
+    var isPreparing: Bool {
+        state == .preparing
+    }
+
+    /// Whether to remind the player that Escape opens the menu. Not while the menu is open
+    /// (it says how to close itself), and not once the run is over.
+    var showsMenuHint: Bool {
+        if case .ended = state { return false }
+        return menu == .closed
+    }
+
     /// The number to show while counting down (3, 2, 1), or nil outside the countdown.
     var countdown: Int? {
         guard case .countdown(let number) = state else { return nil }

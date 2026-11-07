@@ -31,7 +31,7 @@ final class AppViewModel {
 
     func openSettings() {
         guard case .lobby = screen else { return }
-        screen = .settings
+        screen = .settings(CameraPreviewViewModel())
     }
 
     func backToLobby() {

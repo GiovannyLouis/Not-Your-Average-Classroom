@@ -8,11 +8,14 @@
 
 import SwiftUI
 
-/// The settings card: the head-tracking tuning (y threshold and sensitivity). The lobby shows it on its own,
-/// and the in-game menu shows it over the game. It changes GameSettings directly, so a new value
+/// The settings card: the camera view and the head-tracking tuning (y threshold and sensitivity). The lobby shows it
+/// on its own, and the in-game menu shows it over the game. It changes GameSettings directly, so a new value
 /// is used right away, even by a run that is already going.
 struct SettingsView: View {
     let settings: GameSettings
+
+    /// Where the camera view gets its image. The run's head tracking in game, the lobby's own camera otherwise.
+    let preview: any CameraPreviewSource
 
     /// Called when the player taps "Back".
     let onBack: () -> Void
@@ -21,6 +24,9 @@ struct SettingsView: View {
         VStack(spacing: 22) {
             Text("Settings")
                 .font(.system(size: 44))
+
+            // Above the y threshold, so the yellow line can be checked against the face while the slider moves.
+            CameraPiPView(source: preview, settings: settings, size: CGSize(width: 320, height: 240))
 
             VStack(spacing: 14) {
                 row("Y Threshold", value: settings.thresholdY) {
@@ -53,7 +59,7 @@ struct SettingsView: View {
 }
 
 #Preview {
-    SettingsView(settings: GameSettings(), onBack: {})
+    SettingsView(settings: GameSettings(), preview: CameraPreviewViewModel(), onBack: {})
         .padding(40)
         .background(Color.gray)
 }

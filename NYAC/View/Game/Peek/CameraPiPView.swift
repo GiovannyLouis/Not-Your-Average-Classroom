@@ -5,20 +5,20 @@
 //  Created by Vrz on 01/11/26.
 //
 
-
 import SwiftUI
 
 /// Picture-in-picture: the camera image (mirrored like a mirror), the face we're locked onto
 /// (green rectangle + red center dot), other faces (dashed orange, ignored), and the y threshold line.
 struct CameraPiPView: View {
-    let viewModel: PeekViewModel
+    let source: any CameraPreviewSource
     let settings: GameSettings
+    var size = CGSize(width: 240, height: 180)
 
     var body: some View {
         // Read everything here (not inside Canvas) so SwiftUI refreshes the view when it changes.
-        let image = viewModel.cameraImage
-        let box = viewModel.faceBox
-        let others = viewModel.otherFaceBoxes
+        let image = source.cameraImage
+        let box = source.faceBox
+        let others = source.otherFaceBoxes
         let thresholdY = settings.thresholdY
 
         ZStack {
@@ -54,7 +54,7 @@ struct CameraPiPView: View {
                              with: .color(.red))
             }
         }
-        .frame(width: 240, height: 180)
+        .frame(width: size.width, height: size.height)
         .scaleEffect(x: -1, y: 1)   // mirror image and overlays together, so they stay aligned
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.4), lineWidth: 1))
