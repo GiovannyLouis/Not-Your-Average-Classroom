@@ -5,7 +5,6 @@
 //  Created by Vrz on 05/11/26.
 //
 
-
 import Foundation
 import Observation
 
@@ -27,6 +26,15 @@ final class GameViewModel {
 
     /// Whole seconds left on the clock. Only changes once per second.
     private(set) var secondsLeft = Int(GameConfig.timeLimit)
+
+    /// Which menu is open on top of the game. The game keeps running behind it.
+    private(set) var menu: GameMenu = .closed
+
+    /// The number to show while counting down (3, 2, 1), or nil outside the countdown.
+    var countdown: Int? {
+        guard case .countdown(let number) = state else { return nil }
+        return number
+    }
 
     /// How the run ended, or nil while it is still going.
     var result: GameResult? {
@@ -53,6 +61,10 @@ final class GameViewModel {
 
     /// Head tracking and the parallax scene that draws the lecturer's top view.
     let peek: PeekViewModel
+
+    /// Called when the player chooses to leave the run (from the menu or the game over screen).
+    /// Whoever owns the run decides where to go next.
+    @ObservationIgnored var onBackToLobby: (() -> Void)?
 
     @ObservationIgnored private var timerTask: Task<Void, Never>?
     @ObservationIgnored private var startDate: Date?
@@ -82,16 +94,20 @@ final class GameViewModel {
 
     // MARK: Lifecycle
 
-    /// Gets ready, then starts the clock. Safe to call more than once.
+    /// Gets ready, counts down, then starts the clock. Safe to call more than once.
     func start() async {
         guard !hasStarted else { return }
         hasStarted = true
 
-        // The clock waits for both, so a slow text generation or the camera permission prompt doesn't eat the player's time.
+        // The countdown waits for both, so it only begins once the study text is written and the camera is ready.
         async let camera: Void = peek.start()
         async let text: Void = study.loadNewText()
         await camera
         await text
+        guard !Task.isCancelled else { return }     // the player already left
+
+        await countDown()
+        guard !Task.isCancelled else { return }
 
         startClock()
     }
@@ -101,6 +117,41 @@ final class GameViewModel {
         timerTask?.cancel()
         timerTask = nil
         peek.stop()
+    }
+
+    /// Leaves the run. Where that leads is up to whoever owns it (see `onBackToLobby`).
+    func backToLobby() {
+        onBackToLobby?()
+    }
+
+    // MARK: Menu
+
+    /// Escape: opens the menu, goes back from settings, or closes the menu. Does nothing once the run is over.
+    func toggleMenu() {
+        if case .ended = state { return }
+
+        switch menu {
+        case .closed:   menu = .main
+        case .main:     menu = .closed
+        case .settings: menu = .main
+        }
+        syncInput()
+    }
+
+    func openSettings() {
+        guard menu == .main else { return }
+        menu = .settings
+    }
+
+    func closeSettings() {
+        guard menu == .settings else { return }
+        menu = .main
+    }
+
+    /// The laptop only takes input while the run is going and no menu is in the way.
+    /// Nothing else changes when the menu opens: the clock and the lecturer carry on.
+    private func syncInput() {
+        laptop.isEnabled = state == .running && menu == .closed
     }
 
     // MARK: Objectives
@@ -129,6 +180,16 @@ final class GameViewModel {
         end(.caught(survivedFor: elapsed))
     }
 
+    // MARK: Countdown
+
+    private func countDown() async {
+        for number in stride(from: GameConfig.countdownSeconds, through: 1, by: -1) {
+            state = .countdown(number)
+            try? await Task.sleep(for: .seconds(1))
+            if Task.isCancelled { return }
+        }
+    }
+
     // MARK: Clock
 
     /// Seconds since the clock started.
@@ -140,7 +201,7 @@ final class GameViewModel {
     private func startClock() {
         startDate = Date()
         state = .running
-        laptop.isEnabled = true
+        syncInput()
         lecturer.isActive = true
 
         timerTask = Task { [weak self] in
@@ -167,8 +228,9 @@ final class GameViewModel {
     private func end(_ result: GameResult) {
         timerTask?.cancel()
         timerTask = nil
+        menu = .closed          // the game over screen takes over
         state = .ended(result)
-        laptop.isEnabled = false
+        syncInput()
         lecturer.isActive = false
     }
 }

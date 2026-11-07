@@ -7,20 +7,14 @@
 
 import SwiftUI
 
-import SwiftUI
-
 @main
 struct NYACApp: App {
-    /// Lives as long as the app does, so the player's settings carry over from one run to the next.
-    @State private var settings = GameSettings()
-
-    /// Changing this throws the current game away and builds a fresh one (see `.id` below).
-    @State private var runID = UUID()
+    /// Owns the current screen and the player's settings for as long as the app is open.
+    @State private var app = AppViewModel()
 
     var body: some Scene {
         WindowGroup {
-            GameView(settings: settings, onRestart: { runID = UUID() })
-                .id(runID)
+            RootView(app: app)
                 .background(FullScreenWindow())     // the whole app is full screen, whichever screen is showing
         }
         .windowResizability(.contentSize)

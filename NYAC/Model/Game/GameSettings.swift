@@ -8,7 +8,7 @@
 import SwiftUI
 import Observation
 
-/// Everything the player (or the developer) can tune. The app creates one and hands it to every run,
+/// Everything the player can tune. AppViewModel creates one and hands it to every run,
 /// so the values survive from one run to the next. Features only read it; settings screens write it.
 ///
 /// The values below are the defaults.
@@ -26,10 +26,4 @@ final class GameSettings {
     /// How far the head has to move to reach the full parallax. Bigger = more sensitive.
     var sensitivity: CGFloat = 1.0
     static let sensitivityRange: ClosedRange<CGFloat> = 0.5...3
-
-    // MARK: Debug overlays
-    // They only hide the overlay; tracking keeps running underneath.
-
-    var showsDebugPanel = true
-    var showsCameraPiP = true
 }

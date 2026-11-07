@@ -11,4 +11,7 @@ import Foundation
 enum GameConfig {
     /// One clock for the whole game: every objective has to be done inside it.
     static let timeLimit: TimeInterval = 300
+
+    /// How many seconds the player gets to get ready once the study text is written (3, 2, 1, go).
+    static let countdownSeconds = 3
 }
