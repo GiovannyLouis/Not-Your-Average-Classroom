@@ -9,20 +9,13 @@ import SwiftUI
 import SpriteKit
 
 /// The game screen. The head-tracking scene fills the whole screen with the far layer,
-/// and the laptop floats in front of it as the near layer. Debug panel and camera preview sit on top
-/// and each has its own on/off switch.
+/// and the laptop floats in front of it as the near layer. The preparing screen, the countdown, the Escape menu
+/// and the game over screen are laid over it, each one only while it applies.
 ///
 /// Everything about the run itself lives in GameViewModel: this view only shows it and starts it.
 struct GameView: View {
-    @State private var game: GameViewModel
-
-    /// Called when the player leaves the game over screen. For now that means starting a new run.
-    private let onRestart: () -> Void
-
-    init(settings: GameSettings, onRestart: @escaping () -> Void) {
-        self.onRestart = onRestart
-        _game = State(initialValue: GameViewModel(settings: settings))
-    }
+    /// The run being played. The app makes a fresh one for every Start, so this view never needs resetting.
+    let game: GameViewModel
 
     var body: some View {
         ZStack {
@@ -34,18 +27,24 @@ struct GameView: View {
             LaptopLayer(scene: game.peek.scene, game: game)
         }
         .ignoresSafeArea()
-        .overlay(alignment: .topLeading) { controls }
-        .overlay(alignment: .topTrailing) {
-            if game.settings.showsCameraPiP {
-                CameraPiPView(viewModel: game.peek, settings: game.settings)
-                    .padding()
-                    .focusable(false)
+        .overlay {
+            if game.isPreparing {
+                PreparingView()
+            } else if let number = game.countdown {
+                CountdownView(number: number)
             }
         }
-        // Last, so it sits in front of everything: the finished game stays visible behind it, dimmed.
+        .overlay(alignment: .topLeading) { topLeading }
+        // The menu and the game over screen come last, so they sit in front of everything:
+        // the game stays visible behind them, dimmed.
+        .overlay {
+            if game.menu != .closed {
+                GameMenuView(game: game)
+            }
+        }
         .overlay {
             if let content = game.gameOverContent {
-                GameOverView(content: content, onBackToLobby: onRestart)
+                GameOverView(content: content, onBackToLobby: { game.backToLobby() })
             }
         }
         .task { await game.start() }
@@ -54,25 +53,25 @@ struct GameView: View {
 
     // MARK: - Overlays
 
-    /// The two switches are always visible, so a hidden panel can always be brought back.
-    private var controls: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Toggle("Debug", isOn: Bindable(game.settings).showsDebugPanel)
-                Toggle("Camera", isOn: Bindable(game.settings).showsCameraPiP)
+    /// The notes in the top left corner: how to open the menu, and the camera warning when it applies.
+    private var topLeading: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // The opposite of the menu: shown while it is closed, gone while it is open (the menu says how to close it).
+            if game.showsMenuHint {
+                Text("Press Esc to open menu")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.white.opacity(0.85))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.black.opacity(0.5), in: Capsule())
             }
-            .toggleStyle(.button)
 
-            // Outside the debug panel on purpose: this has to stay readable when the panel is hidden.
+            // Without the camera there is no peeking, and the player has to know why.
             if game.peek.cameraDenied {
                 Text("Camera access denied. Allow it in System Settings > Privacy & Security > Camera.")
                     .font(.callout)
                     .foregroundStyle(.red)
                     .frame(maxWidth: 260, alignment: .leading)
-            }
-
-            if game.settings.showsDebugPanel {
-                DebugPanelView(viewModel: game.peek, settings: game.settings)
             }
         }
         .padding()
@@ -95,5 +94,5 @@ private struct LaptopLayer: View {
 }
 
 #Preview {
-    GameView(settings: GameSettings(), onRestart: {})
+    GameView(game: GameViewModel(settings: GameSettings()))
 }

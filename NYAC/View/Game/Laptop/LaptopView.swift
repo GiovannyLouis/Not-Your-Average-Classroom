@@ -34,7 +34,7 @@ struct LaptopView: View {
         .focusEffectDisabled()
         .onAppear { isFocused = true }
         // Nothing else in the game needs the keyboard, so if focus ever lands elsewhere
-        // (clicking a debug slider, say) take it straight back.
+        // (clicking a slider in the menu, say) take it straight back.
         .onChange(of: isFocused) { _, focused in
             if !focused { isFocused = true }
         }
@@ -106,6 +106,12 @@ struct LaptopView: View {
     // MARK: - Keyboard
  
     private func handle(_ press: KeyPress) -> KeyPress.Result {
+        // Escape always belongs to the game: it opens and closes the menu. It never reaches either tab.
+        if press.key == .escape {
+            if press.phase == .down { game.toggleMenu() }
+            return .handled
+        }
+
         // Tab always belongs to the laptop. It never reaches either tab.
         if press.key == .tab {
             if press.phase == .down { laptop.switchTab() }

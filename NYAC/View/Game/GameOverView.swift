@@ -42,15 +42,10 @@ struct GameOverView: View {
                     .padding(.top, 14)
             }
 
-            backButton
+            PillButton(title: "Back to Lobby", action: onBackToLobby)
                 .padding(.top, 4)
         }
-        .foregroundStyle(.black)
-        .padding(.vertical, 28)
-        .padding(.horizontal, 32)
-        .frame(width: 720)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 28))
-        .overlay(RoundedRectangle(cornerRadius: 28).stroke(.black, lineWidth: 5))
+        .cardStyle()
     }
 
     private func statBox(_ stat: GameOverContent.Stat) -> some View {
@@ -65,18 +60,6 @@ struct GameOverView: View {
         .padding(.vertical, 14)
         .overlay(RoundedRectangle(cornerRadius: 22).stroke(.black, lineWidth: 5))
         .padding(.horizontal, 24)       // a bit narrower than the card, like the sketch
-    }
-
-    private var backButton: some View {
-        Button(action: onBackToLobby) {
-            Text("Restart")
-                .font(.system(size: 18))
-                .padding(.horizontal, 36)
-                .padding(.vertical, 12)
-                .overlay(Capsule().stroke(.black, lineWidth: 5))
-                .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
     }
 }
 

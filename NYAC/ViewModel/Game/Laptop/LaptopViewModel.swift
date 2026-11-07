@@ -32,7 +32,7 @@ final class LaptopViewModel {
 
     // MARK: Set by the game
 
-    /// The game turns this on while the run is going. While it is off, the laptop ignores every key.
+    /// The game turns this on while the run is going and no menu is open. While it is off, the laptop ignores every key.
     @ObservationIgnored var isEnabled = false
 
     /// Called after the player switches tabs. The game decides what that means
