@@ -17,6 +17,11 @@ struct MinigameView: View {
         SpriteView(scene: scene)
             .allowsHitTesting(false)               // keyboard focus belongs to the laptop, not the SKView
             .frame(width: MinigameLayout.size.width, height: MinigameLayout.size.height)
+            .overlay(alignment: .top) {
+                MinigameProgressBar(progress: viewModel.progress)
+                    .padding(.top, 12)
+                    .padding(.horizontal, 16)
+            }   // inside the frame: the screen keeps its size
             .overlay { resultLabel }
     }
 
