@@ -10,14 +10,21 @@ import Combine
 
 final class MinigameViewModel: ObservableObject {
 
-    // Observed by SwiftUI (result label).
+    // Observed by SwiftUI (result label, progress bar). They change on a hop or a death, not every frame.
     @Published private(set) var state: MinigameState = .ready
+    @Published private(set) var playerRow = 0
 
     // Read by the scene every frame. Deliberately not @Published: they change 60x a second.
     private(set) var rows: [Row] = []
-    private(set) var playerRow = 0
     private(set) var playerX: CGFloat = 0          // in cells, may sit between cells on a log
     private(set) var levelVersion = 0              // bumps whenever a new level is generated
+
+    /// How far along the level the chicken is: 0 on the start row, 1 on the finish row.
+    /// It goes back down when the chicken hops back, and resets with a new run.
+    var progress: Double {
+        guard rows.count > 1 else { return 0 }
+        return Double(playerRow) / Double(rows.count - 1)
+    }
 
     /// Called once when the player reaches the finish. The game uses it to mark this objective as done.
     var onCompleted: (() -> Void)?
