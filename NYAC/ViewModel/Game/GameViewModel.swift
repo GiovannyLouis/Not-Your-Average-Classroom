@@ -61,8 +61,12 @@ final class GameViewModel {
 
     // MARK: The parts of the game
 
-    /// Shared by the whole app and outlives any single run, so it is handed in instead of created here.
+    // The next two are shared by the whole app and outlive any single run, so they are handed in instead of created here.
+
     let settings: GameSettings
+
+    /// The app's camera and head tracking. It is already running when a run starts and keeps running after it.
+    let peek: PeekViewModel
 
     let minigame: MinigameViewModel
     let study: TypingViewModel
@@ -71,8 +75,8 @@ final class GameViewModel {
     /// Shows Study and Minigame as tabs and decides which of them gets the keyboard.
     let laptop: LaptopViewModel
 
-    /// Head tracking and the parallax scene that draws the lecturer's top view.
-    let peek: PeekViewModel
+    /// Draws the lecturer's top view behind the laptop and moves both with the head tracking.
+    let parallaxScene: ParallaxScene
 
     /// Called when the player chooses to leave the run (from the menu or the game over screen).
     /// Whoever owns the run decides where to go next.
@@ -82,13 +86,14 @@ final class GameViewModel {
     @ObservationIgnored private var startDate: Date?
     @ObservationIgnored private var hasStarted = false
 
-    init(settings: GameSettings, minigame: MinigameViewModel, study: TypingViewModel, lecturer: LecturerViewModel) {
+    init(settings: GameSettings, peek: PeekViewModel, minigame: MinigameViewModel, study: TypingViewModel, lecturer: LecturerViewModel) {
         self.settings = settings
+        self.peek = peek
         self.minigame = minigame
         self.study = study
         self.lecturer = lecturer
         self.laptop = LaptopViewModel(minigame: minigame, study: study)
-        self.peek = PeekViewModel(lecturer: lecturer, settings: settings)
+        self.parallaxScene = ParallaxScene(lecturer: lecturer, peek: peek)
 
         // A part only reports "I'm done" or "something changed". The game decides what that means for the run.
         minigame.onCompleted = { [weak self] in self?.complete(.minigame) }
@@ -100,8 +105,8 @@ final class GameViewModel {
         laptop.onTabChanged = { [weak self] in self?.checkCaught() }
     }
 
-    convenience init(settings: GameSettings) {
-        self.init(settings: settings, minigame: MinigameViewModel(), study: TypingViewModel(), lecturer: LecturerViewModel())
+    convenience init(settings: GameSettings, peek: PeekViewModel) {
+        self.init(settings: settings, peek: peek, minigame: MinigameViewModel(), study: TypingViewModel(), lecturer: LecturerViewModel())
     }
 
     // MARK: Lifecycle
@@ -111,11 +116,11 @@ final class GameViewModel {
         guard !hasStarted else { return }
         hasStarted = true
 
-        // The countdown waits for both, so it only begins once the study text is written and the camera is ready.
-        async let camera: Void = peek.start()
-        async let text: Void = study.loadNewText()
-        await camera
-        await text
+        // The camera has been on since the app opened, so the run only has to start over from where the player sits now.
+        peek.recenter()
+
+        // The countdown waits for the study text, so it only begins once the text is written.
+        await study.loadNewText()
         guard !Task.isCancelled else { return }     // the player already left
 
         await countDown()
@@ -124,11 +129,10 @@ final class GameViewModel {
         startClock()
     }
 
-    /// Stops the clock and the camera. Called when the game screen goes away.
+    /// Stops the clock. Called when the game screen goes away. The camera is not part of the run, so it stays on.
     func stop() {
         timerTask?.cancel()
         timerTask = nil
-        peek.stop()
     }
 
     /// Leaves the run. Where that leads is up to whoever owns it (see `onBackToLobby`).

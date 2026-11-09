@@ -7,10 +7,12 @@
 
 import SwiftUI
 import Observation
-import SpriteKit
 
-/// ViewModel: picks which face to follow and turns its position into a mode (focus / peek) and a calibrated
-/// head offset (-1...1 on each axis). It hands everything to the scene.
+/// ViewModel: the one camera of the whole app. It opens the camera, picks which face to follow and turns its
+/// position into a mode (focus / peek) and a calibrated head offset (-1...1 on each axis).
+///
+/// The app makes one when it opens and keeps the camera on for as long as it is open, so every screen (the lobby,
+/// the settings and every run) reads the same head tracking. It doesn't draw anything: scenes and views read from it.
 @MainActor
 @Observable
 final class PeekViewModel {
@@ -30,9 +32,7 @@ final class PeekViewModel {
     /// How many frames the locked face may go missing before the lock is released (about 1 second at 30 fps).
     private let releaseAfterMissedFrames = 30
 
-    // MARK: - State for the view
-
-    let scene: ParallaxScene
+    // MARK: - State for the views and scenes
 
     private(set) var mode: HeadMode = .focus
     private(set) var headOffset: CGPoint = .zero
@@ -57,10 +57,8 @@ final class PeekViewModel {
     @ObservationIgnored private var lockedBox: CGRect?
     @ObservationIgnored private var missedFrames = 0
 
-    init(lecturer: LecturerViewModel, settings: GameSettings) {
+    init(settings: GameSettings) {
         self.settings = settings
-        scene = ParallaxScene(size: CGSize(width: 900, height: 600), lecturer: lecturer)
-        scene.scaleMode = .resizeFill
 
         service.onFrame = { [weak self] frame in
             Task { @MainActor in self?.handle(frame) }
@@ -88,6 +86,16 @@ final class PeekViewModel {
         missedFrames = 0
     }
 
+    /// Start over from where the player is right now: forget the locked face and the sideways calibration, so the next
+    /// frame locks onto the biggest face and treats where it sits as the center. The camera stays on between runs,
+    /// so every run calls this first, otherwise it would inherit the calibration (and the pose) from earlier.
+    func recenter() {
+        relockFace()
+        neutralX = nil
+        mode = .focus
+        headOffset = .zero
+    }
+
     // MARK: - Frame handling
 
     private func handle(_ frame: TrackingFrame) {
@@ -109,7 +117,6 @@ final class PeekViewModel {
 
         // Plain threshold: the moment the center dot is above the line it's peek, otherwise focus.
         mode = face.y > settings.thresholdY ? .peek : .focus
-        scene.mode = mode
 
         var dx = face.x - (neutralX ?? face.x)
         if mirrorX { dx = -dx }                    // camera sees you mirrored: your right = smaller x
@@ -117,7 +124,6 @@ final class PeekViewModel {
 
         let range = headRange / max(settings.sensitivity, 0.01)
         headOffset = CGPoint(x: clamp(dx / range), y: clamp(dy / range))
-        scene.headOffset = headOffset
     }
 
     /// Returns the box that belongs to the person we're locked onto (nil if they're not visible this frame).
@@ -154,3 +160,4 @@ final class PeekViewModel {
         min(max(value, -1), 1)
     }
 }
+

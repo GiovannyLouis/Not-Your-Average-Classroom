@@ -10,15 +10,15 @@ import SwiftUI
 /// Picture-in-picture: the camera image (mirrored like a mirror), the face we're locked onto
 /// (green rectangle + red center dot), other faces (dashed orange, ignored), and the y threshold line.
 struct CameraPiPView: View {
-    let source: any CameraPreviewSource
+    let peek: PeekViewModel
     let settings: GameSettings
     var size = CGSize(width: 240, height: 180)
 
     var body: some View {
         // Read everything here (not inside Canvas) so SwiftUI refreshes the view when it changes.
-        let image = source.cameraImage
-        let box = source.faceBox
-        let others = source.otherFaceBoxes
+        let image = peek.cameraImage
+        let box = peek.faceBox
+        let others = peek.otherFaceBoxes
         let thresholdY = settings.thresholdY
 
         ZStack {

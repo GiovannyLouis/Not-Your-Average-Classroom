@@ -17,12 +17,10 @@ struct RootView: View {
         case .lobby:
             LobbyView(app: app)
 
-        case .settings(let preview):
-            SettingsView(settings: app.settings, preview: preview, onBack: { app.backToLobby() })
+        case .settings:
+            SettingsView(settings: app.settings, peek: app.peek, onBack: { app.backToLobby() })
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.white)
-                .task { await preview.start() }         // the camera only runs while this screen is open
-                .onDisappear { preview.stop() }
 
         case .game(let game):
             GameView(game: game)

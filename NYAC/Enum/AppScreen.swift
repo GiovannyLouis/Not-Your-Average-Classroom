@@ -10,8 +10,7 @@
 enum AppScreen {
     case lobby
 
-    /// Carries the camera preview shown in the settings. It lives only while this screen does.
-    case settings(CameraPreviewViewModel)
+    case settings
 
     /// The run being played. Leaving the game screen throws the run away, so every Start begins with a fresh one.
     case game(GameViewModel)

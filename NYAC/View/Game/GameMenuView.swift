@@ -23,7 +23,7 @@ struct GameMenuView: View {
             case .main:
                 mainCard
             case .settings:
-                SettingsView(settings: game.settings, preview: game.peek, onBack: { game.closeSettings() })
+                SettingsView(settings: game.settings, peek: game.peek, onBack: { game.closeSettings() })
             }
         }
         .ignoresSafeArea()
