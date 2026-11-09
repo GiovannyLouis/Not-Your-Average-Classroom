@@ -5,7 +5,6 @@
 //  Created by Vrz on 08/11/26.
 //
 
-
 import SwiftUI
 
 /// The settings card: the camera view and the head-tracking tuning (y threshold and sensitivity). The lobby shows it
@@ -14,8 +13,8 @@ import SwiftUI
 struct SettingsView: View {
     let settings: GameSettings
 
-    /// Where the camera view gets its image. The run's head tracking in game, the lobby's own camera otherwise.
-    let preview: any CameraPreviewSource
+    /// The app's camera: where the camera view gets its image and faces.
+    let peek: PeekViewModel
 
     /// Called when the player taps "Back".
     let onBack: () -> Void
@@ -26,7 +25,7 @@ struct SettingsView: View {
                 .font(.system(size: 44))
 
             // Above the y threshold, so the yellow line can be checked against the face while the slider moves.
-            CameraPiPView(source: preview, settings: settings, size: CGSize(width: 320, height: 240))
+            CameraPiPView(peek: peek, settings: settings, size: CGSize(width: 320, height: 240))
 
             VStack(spacing: 14) {
                 row("Y Threshold", value: settings.thresholdY) {
@@ -59,7 +58,8 @@ struct SettingsView: View {
 }
 
 #Preview {
-    SettingsView(settings: GameSettings(), preview: CameraPreviewViewModel(), onBack: {})
+    let settings = GameSettings()
+    SettingsView(settings: settings, peek: PeekViewModel(settings: settings), onBack: {})
         .padding(40)
         .background(Color.gray)
 }

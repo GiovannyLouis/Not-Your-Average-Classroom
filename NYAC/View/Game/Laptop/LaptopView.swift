@@ -174,5 +174,6 @@ struct LaptopView: View {
 }
  
 #Preview {
-    LaptopView(game: GameViewModel(settings: GameSettings()))
+    let settings = GameSettings()
+    LaptopView(game: GameViewModel(settings: settings, peek: PeekViewModel(settings: settings)))
 }

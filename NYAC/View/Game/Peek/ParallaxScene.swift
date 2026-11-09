@@ -17,12 +17,6 @@ import SpriteKit
 /// belongs (`wallOffset`) and the SwiftUI side follows it every frame.
 final class ParallaxScene: SKScene {
 
-    /// Normalized head offset, -1...1 (+x = head right, +y = head up). Set by the view model.
-    var headOffset: CGPoint = .zero
-
-    /// Which pose to be in. Set by the view model.
-    var mode: HeadMode = .focus
-
     /// Size of the near layer (the laptop). The scene needs it to know where the laptop's top edge sits in peek mode,
     /// and how big the top view may be while still hiding completely behind the laptop in focus mode.
     var wallSize: CGSize = LaptopLayout.size {
@@ -55,6 +49,10 @@ final class ParallaxScene: SKScene {
 
     // MARK: - Nodes and state
 
+    /// The app's head tracking. Every frame the scene reads the head offset (-1...1 on each axis, +x = head right,
+    /// +y = head up) and the pose to be in (focus or peek) from it.
+    private let peek: PeekViewModel
+
     private let lecturer: LecturerViewModel
     private let topView: TopViewNode
 
@@ -64,10 +62,12 @@ final class ParallaxScene: SKScene {
 
     // MARK: - Setup
 
-    init(size: CGSize, lecturer: LecturerViewModel) {
+    init(lecturer: LecturerViewModel, peek: PeekViewModel) {
+        self.peek = peek
         self.lecturer = lecturer
         topView = TopViewNode(lecturer: lecturer)
-        super.init(size: size)
+        super.init(size: CGSize(width: 900, height: 600))   // only a starting point: .resizeFill makes it match the SpriteView
+        scaleMode = .resizeFill
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -109,10 +109,11 @@ final class ParallaxScene: SKScene {
         lecturer.update(deltaTime: dt)
         topView.sync()
 
+        let headOffset = peek.headOffset
         smoothed.x += (headOffset.x - smoothed.x) * smoothing
         smoothed.y += (headOffset.y - smoothed.y) * smoothing
 
-        let target: CGFloat = (mode == .peek) ? 1 : 0
+        let target: CGFloat = (peek.mode == .peek) ? 1 : 0
         blend += (target - blend) * modeBlendSpeed
 
         // Near layer (the laptop): centered in focus mode; in peek mode its top edge sits at `peekWallTop` of the screen height.

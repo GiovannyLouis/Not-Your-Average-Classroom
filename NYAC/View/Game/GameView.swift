@@ -20,11 +20,11 @@ struct GameView: View {
     var body: some View {
         ZStack {
             // Far layer. Clicks pass through it so the keyboard stays with the laptop.
-            SpriteView(scene: game.peek.scene)
+            SpriteView(scene: game.parallaxScene)
                 .allowsHitTesting(false)
 
             // Near layer: the laptop, moved every frame by the scene's parallax.
-            LaptopLayer(scene: game.peek.scene, game: game)
+            LaptopLayer(scene: game.parallaxScene, game: game)
         }
         .ignoresSafeArea()
         .overlay {
@@ -94,5 +94,6 @@ private struct LaptopLayer: View {
 }
 
 #Preview {
-    GameView(game: GameViewModel(settings: GameSettings()))
+    let settings = GameSettings()
+    GameView(game: GameViewModel(settings: settings, peek: PeekViewModel(settings: settings)))
 }
