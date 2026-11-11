@@ -14,7 +14,7 @@ enum LaptopLayout {
     /// The laptop screen is exactly as big as the minigame field; the study view fills the same frame.
     static var screenSize: CGSize { MinigameLayout.size }
 
-    /// The whole laptop as one box: top bar + screen. The Peek scene uses this as the size of its wall.
+    /// The whole laptop as one box: top bar + screen. The Peek scene uses this as the size of the laptop
     static var size: CGSize {
         CGSize(width: screenSize.width, height: topBarHeight + screenSize.height)
     }

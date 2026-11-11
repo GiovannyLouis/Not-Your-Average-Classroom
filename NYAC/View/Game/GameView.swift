@@ -88,7 +88,7 @@ private struct LaptopLayer: View {
     var body: some View {
         TimelineView(.animation) { _ in
             LaptopView(game: game)
-                .offset(x: scene.wallOffset.x, y: -scene.wallOffset.y)   // SpriteKit's y points up, SwiftUI's down
+                .offset(x: scene.laptopOffset.x, y: -scene.laptopOffset.y)   // SpriteKit's y points up, SwiftUI's down
         }
     }
 }

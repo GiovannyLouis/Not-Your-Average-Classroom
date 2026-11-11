@@ -115,8 +115,16 @@ final class PeekViewModel {
         lastFaceX = face.x
         if neutralX == nil { neutralX = face.x }   // first detection auto-calibrates sideways
 
-        // Plain threshold: the moment the center dot is above the line it's peek, otherwise focus.
-        mode = face.y > settings.thresholdY ? .peek : .focus
+        // Switch focus and peek with minimum jitter, but extra effort.
+        // Switch to the commented below and comment this one if prefer an absolute change instead
+        let hysteresis: CGFloat = 0.005
+        switch mode {
+        case .focus where face.y > settings.thresholdY + hysteresis: mode = .peek
+        case .peek where face.y < settings.thresholdY - hysteresis: mode = .focus
+            default: break
+        }
+//        // Plain threshold: the moment the center dot is above the line it's peek, otherwise focus.
+//        mode = face.y > settings.thresholdY ? .peek : .focus
 
         var dx = face.x - (neutralX ?? face.x)
         if mirrorX { dx = -dx }                    // camera sees you mirrored: your right = smaller x
