@@ -5,7 +5,6 @@
 //  Created by Vrz on 11/11/26.
 //
 
-
 import Foundation
 import CoreGraphics
 
@@ -35,7 +34,7 @@ enum ClassroomLayout {
     // MARK: - Speed (parallax multipliers)
 
     // Fractions of the scene's maxShift, from the closest layer to the furthest. The laptop sits above all of these
-    // (0.25 in focus, 0.20 in peek, set in ParallaxScene), so each layer has to stay below that.
+    // (0.3, set in ParallaxScene), so each layer has to stay below that.
     // The bigger the gap between two layers, the stronger the sense of depth between them.
 
     static func multiplier(of layer: ParallaxLayer) -> CGFloat {
@@ -46,6 +45,15 @@ enum ClassroomLayout {
         case .whiteboard:     return 0.03
         }
     }
+
+    // MARK: - Focus <-> peek
+
+    /// How far the head "travels" between focus and peek, in the same units as the head offset (-1...1).
+    /// The classroom follows the switch as if the head really rose that far: every layer moves by
+    /// `poseTravel * maxShift * multiplier`, so the closer a layer is, the more it drops when you peek.
+    /// In peek the layers rest exactly where the sketch puts them; in focus they sit that much higher.
+    /// The laptop is not part of this: it makes its own, much bigger jump (see ParallaxScene).
+    static let poseTravel: CGFloat = 2.5
 
     // MARK: - Draw order (z positions)
 
@@ -90,14 +98,16 @@ enum ClassroomLayout {
         }
     }
 
-    /// How far an item that the sketch cuts off at the screen edge keeps going past it.
-    /// The layers slide sideways when the head moves, and without this the edge of the desk would slide into view.
+    /// How far an item that the sketch cuts off at a screen edge keeps going past it.
+    /// The layers slide when the head moves, and they lift when the pose goes back to focus, so without this the
+    /// edge of a desk would slide into view (the bottom edge of the second row desks, most of all).
     static let edgeBleed: CGFloat = 400
 
-    /// What actually gets drawn: the sketch's frame, plus the bleed for items that touch the left or right edge.
+    /// What actually gets drawn: the sketch's frame, plus the bleed on every side where it touches the edge.
     static func drawnFrame(of item: ClassroomItem) -> CGRect {
         var result = frame(of: item)
         let halfWidth = designSize.width / 2
+        let halfHeight = designSize.height / 2
 
         if result.minX <= -halfWidth {
             result.origin.x -= edgeBleed
@@ -105,6 +115,13 @@ enum ClassroomLayout {
         }
         if result.maxX >= halfWidth {
             result.size.width += edgeBleed
+        }
+        if result.minY <= -halfHeight {          // y points up, so this is the bottom edge
+            result.origin.y -= edgeBleed
+            result.size.height += edgeBleed
+        }
+        if result.maxY >= halfHeight {
+            result.size.height += edgeBleed
         }
         return result
     }
