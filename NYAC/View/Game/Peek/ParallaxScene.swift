@@ -12,37 +12,31 @@ import SpriteKit
 ///  - peek:  the laptop drops to the bottom of the screen showing only its top edge
 /// In both poses, each layer moves opposite to your head, scaled by its own multiplier.
 ///
-/// SpriteKit only draws the far layer: the top view of the classroom, with the lecturer in it.
-/// The near layer is the laptop, which is a SwiftUI view, so the scene just works out where that view
-/// belongs (`wallOffset`) and the SwiftUI side follows it every frame.
+/// SpriteKit draws the classroom (ClassroomNode): the desks, the window, the door and the whiteboard, each parallax layer
+/// with its own multiplier (see ClassroomLayout). The top view of the classroom, with the lecturer in it, hangs inside the whiteboard.
+/// The nearest layer is the laptop, which is a SwiftUI view, so the scene just works out where that view
+/// belongs (`laptopOffset`) and the SwiftUI side follows it every frame.
 final class ParallaxScene: SKScene {
 
-    /// Size of the near layer (the laptop). The scene needs it to know where the laptop's top edge sits in peek mode,
-    /// and how big the top view may be while still hiding completely behind the laptop in focus mode.
-    var wallSize: CGSize = LaptopLayout.size {
-        didSet { layoutTopView() }
-    }
+    /// Size of the near layer (the laptop). The scene needs it to know where the laptop's top edge sits in peek mode.
+    var laptopSize: CGSize = LaptopLayout.size
 
     /// Where the laptop's center is relative to the middle of the screen, in points.
     /// SpriteKit axes: +x = right, +y = UP. Updated every frame in `update`.
-    private(set) var wallOffset: CGPoint = .zero
+    private(set) var laptopOffset: CGPoint = .zero
 
     // MARK: - Tuning
 
     /// Screen shift in points for a layer with multiplier 1.0 when your head is at the edge of its range.
     private let maxShift: CGFloat = 220
 
-    // Movement multipliers (fractions of maxShift).
-    private let wallFocusMultiplier: CGFloat = 0.25
-    private let wallPeekMultiplier: CGFloat = 0.20
-    private let topViewMultiplier: CGFloat = 0.05      // keep it well below the wall's so depth still reads
+    // Movement multipliers of the laptop (fractions of maxShift). The classroom's layers have their own, all smaller
+    // than these, in ClassroomLayout.multiplier(of:), so the further a thing is, the less it moves.
+    private let laptopFocusMultiplier: CGFloat = 0.3
+    private let laptopPeekMultiplier: CGFloat = 0.3
 
     /// In peek mode, where the laptop's top edge sits, as a fraction of the screen height from the bottom.
-    private let peekWallTop: CGFloat = 0.2
-
-    /// How tall the top view is, as a fraction of the screen height. It has to stay below 0.6, or in peek mode
-    /// its bottom would still be hidden behind the laptop's top edge.
-    private let topViewHeightFraction: CGFloat = 0.55
+    private let peekLaptopTop: CGFloat = 0.2
 
     private let smoothing: CGFloat = 0.2             // easing of the head offset
     private let modeBlendSpeed: CGFloat = 0.12       // easing of the focus <-> peek transition
@@ -55,6 +49,7 @@ final class ParallaxScene: SKScene {
 
     private let lecturer: LecturerViewModel
     private let topView: TopViewNode
+    private let classroom: ClassroomNode
 
     private var smoothed: CGPoint = .zero
     private var blend: CGFloat = 0                   // 0 = focus pose, 1 = peek pose
@@ -65,7 +60,9 @@ final class ParallaxScene: SKScene {
     init(lecturer: LecturerViewModel, peek: PeekViewModel) {
         self.peek = peek
         self.lecturer = lecturer
-        topView = TopViewNode(lecturer: lecturer)
+        let topView = TopViewNode(lecturer: lecturer)
+        self.topView = topView
+        classroom = ClassroomNode(topView: topView)
         super.init(size: CGSize(width: 900, height: 600))   // only a starting point: .resizeFill makes it match the SpriteView
         scaleMode = .resizeFill
     }
@@ -75,29 +72,21 @@ final class ParallaxScene: SKScene {
     }
 
     override func didMove(to view: SKView) {
-        backgroundColor = SKColor(white: 0.08, alpha: 1)
-        guard topView.parent == nil else { return }
+        backgroundColor = .white                // the sketch's plain white, behind every layer
+        guard classroom.parent == nil else { return }
 
-        // Far: always at the screen center. Hidden behind the laptop in focus mode, so you have to peek to see it.
-        addChild(topView)
-        layoutTopView()
+        addChild(classroom)
+        layoutClassroom()
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
-        layoutTopView()
+        layoutClassroom()
     }
 
-    /// Big enough to read, but small enough to hide completely behind the laptop in focus mode.
-    private func layoutTopView() {
-        // The laptop and the top view slide by different amounts, so the laptop can drift this far off the top view's edge.
-        let hideMargin = maxShift * abs(wallFocusMultiplier - topViewMultiplier) + 8
-
-        let drawing = TopViewLayout.size
-        let fitsBehindHeight = wallSize.height - 2 * hideMargin
-        let fitsBehindWidth = (wallSize.width - 2 * hideMargin) * drawing.height / drawing.width
-
-        let height = min(size.height * topViewHeightFraction, fitsBehindHeight, fitsBehindWidth)
-        topView.setScale(max(height, 1) / drawing.height)
+    /// The classroom sits at the middle of the screen, and its layers are scaled so the room covers the whole screen.
+    private func layoutClassroom() {
+        classroom.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        classroom.fit(to: size)
     }
 
     // MARK: - Parallax
@@ -116,15 +105,15 @@ final class ParallaxScene: SKScene {
         let target: CGFloat = (peek.mode == .peek) ? 1 : 0
         blend += (target - blend) * modeBlendSpeed
 
-        // Near layer (the laptop): centered in focus mode; in peek mode its top edge sits at `peekWallTop` of the screen height.
-        let wallPeekY = (peekWallTop - 0.5) * size.height - wallSize.height / 2
-        wallOffset = shift(restY: lerp(0, wallPeekY, blend),
-                           multiplier: lerp(wallFocusMultiplier, wallPeekMultiplier, blend))
+        // Near layer (the laptop): centered in focus mode; in peek mode its top edge sits at `peekLaptopTop` of the screen height.
+        let laptopPeekY = (peekLaptopTop - 0.5) * size.height - laptopSize.height / 2
+        laptopOffset = shift(restY: lerp(0, laptopPeekY, blend),
+                           multiplier: lerp(laptopFocusMultiplier, laptopPeekMultiplier, blend))
 
-        // Far layer is drawn right here.
-        let topViewShift = shift(restY: 0, multiplier: topViewMultiplier)
-        topView.position = CGPoint(x: size.width / 2 + topViewShift.x,
-                                   y: size.height / 2 + topViewShift.y)
+        // Far layers are drawn right here. Each one rests where the sketch puts it and slides by its own multiplier.
+        for layer in ParallaxLayer.allCases {
+            classroom.setShift(shift(restY: 0, multiplier: ClassroomLayout.multiplier(of: layer)), of: layer)
+        }
     }
 
     /// Offset from the screen center = rest position - head offset * maxShift * multiplier.
