@@ -110,9 +110,13 @@ final class ParallaxScene: SKScene {
         laptopOffset = shift(restY: lerp(0, laptopPeekY, blend),
                            multiplier: lerp(laptopFocusMultiplier, laptopPeekMultiplier, blend))
 
-        // Far layers are drawn right here. Each one rests where the sketch puts it and slides by its own multiplier.
+        // Far layers are drawn right here. In peek each one rests where the sketch puts it; going back to focus lifts it,
+        // with the same easing (`blend`) as the laptop, so the room follows the laptop's jump instead of standing still.
+        // The lift is the head rising by `poseTravel` through the layer's own multiplier, so closer layers move more.
+        let poseLift = (1 - blend) * ClassroomLayout.poseTravel
         for layer in ParallaxLayer.allCases {
-            classroom.setShift(shift(restY: 0, multiplier: ClassroomLayout.multiplier(of: layer)), of: layer)
+            let multiplier = ClassroomLayout.multiplier(of: layer)
+            classroom.setShift(shift(restY: poseLift * maxShift * multiplier, multiplier: multiplier), of: layer)
         }
     }
 
