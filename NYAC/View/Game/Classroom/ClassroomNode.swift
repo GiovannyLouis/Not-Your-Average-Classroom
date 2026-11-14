@@ -5,11 +5,14 @@
 //  Created by Vrz on 11/11/26.
 //
 
-
 import SpriteKit
 
-/// The classroom as the player sees it from their seat, built as a greybox: plain boxes in the places of the sketch
-/// (second row desks B C D, first row desks E F G, window H, door I, whiteboard J). The laptop is not part of it.
+/// The classroom as the player sees it from their seat: second row desks B C D, first row desks E F G, window H,
+/// door I and whiteboard J. The laptop is not part of it.
+///
+/// Every item is drawn with its art (named by `ClassroomItem.assetName`). While the project does not have that image
+/// yet, the item is a greybox instead: a plain box with its sketch letter, in the same place. So a missing asset never
+/// leaves a hole, and an item changes over by itself as soon as its image is added.
 ///
 /// The room is split into one node per parallax layer. The scene slides each of those nodes by its own amount
 /// (`setShift`), which is the whole parallax effect, while every item keeps its own z position for the draw order.
@@ -21,7 +24,7 @@ final class ClassroomNode: SKNode {
     /// One container per parallax layer. Each is scaled to fit the scene and moved by its layer's shift.
     private var layerNodes: [ParallaxLayer: SKNode] = [:]
 
-    // Greybox colors, picked from the sketch. They go away when the real art comes in.
+    // Greybox colors, picked from the sketch. Only used for the items that do not have their art yet.
     private let deskColor = SKColor(red: 0.60, green: 0.42, blue: 0.35, alpha: 1)
     private let windowColor = SKColor(white: 0.57, alpha: 1)
     private let doorColor = SKColor(red: 0.71, green: 0.59, blue: 0.42, alpha: 1)
@@ -36,9 +39,21 @@ final class ClassroomNode: SKNode {
         }
 
         for item in ClassroomItem.allCases {
-            build(item)
+            if hasArt(item) {
+                addArt(SKTexture(imageNamed: item.assetName), of: item)
+            } else {
+                addGreybox(item)
+            }
         }
         mount(topView)
+
+        #if DEBUG
+        // A typo in a file name shows up here: the item keeps its box and the name it was looking for is printed.
+        let greyboxed = ClassroomItem.allCases.filter { !hasArt($0) }.map(\.assetName)
+        if !greyboxed.isEmpty {
+            print("ClassroomNode: no image found for \(greyboxed.joined(separator: ", ")), drawing the greybox instead")
+        }
+        #endif
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -65,7 +80,38 @@ final class ClassroomNode: SKNode {
 
     // MARK: - Building
 
-    private func build(_ item: ClassroomItem) {
+    /// Whether the project has the item's image yet.
+    /// SKTexture never fails (a missing image becomes a placeholder picture), so AppKit is asked instead.
+    /// It finds the image whether it sits in Assets.xcassets or is a loose file in the project.
+    private func hasArt(_ item: ClassroomItem) -> Bool {
+        NSImage(named: NSImage.Name(item.assetName)) != nil
+    }
+
+    /// The item's art, stretched to exactly its `textureFrame`.
+    private func addArt(_ texture: SKTexture, of item: ClassroomItem) {
+        let frame = ClassroomLayout.textureFrame(of: item)
+
+        let sprite = SKSpriteNode(texture: texture, size: frame.size)
+        sprite.position = CGPoint(x: frame.midX, y: frame.midY)
+        sprite.zPosition = ClassroomLayout.zPosition(of: item)
+        layerNodes[item.layer]?.addChild(sprite)
+
+        #if DEBUG
+        // The art is stretched to fill its frame, so a picture with other proportions looks squashed. Say so.
+        let imageSize = texture.size()
+        if imageSize.width > 0, imageSize.height > 0, frame.height > 0 {
+            let imageRatio = imageSize.width / imageSize.height
+            let frameRatio = frame.width / frame.height
+            if abs(imageRatio / frameRatio - 1) > 0.03 {
+                print(String(format: "ClassroomNode: %@ is %.2f wide for its height, but its frame is %.2f, so it is stretched (ClassroomLayout.textureFrame)",
+                             item.assetName, imageRatio, frameRatio))
+            }
+        }
+        #endif
+    }
+
+    /// The box with the sketch's letter, drawn when the item has no art yet.
+    private func addGreybox(_ item: ClassroomItem) {
         let drawn = ClassroomLayout.drawnFrame(of: item)
 
         let box = SKShapeNode(rectOf: drawn.size)
