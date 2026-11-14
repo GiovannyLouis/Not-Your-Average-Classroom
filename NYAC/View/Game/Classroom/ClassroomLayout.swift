@@ -81,6 +81,14 @@ enum ClassroomLayout {
         zPosition(of: .whiteboard) + 1
     }
 
+    // MARK: - Background
+
+    /// The picture behind the whole room: the wall. While the project does not have it, the wall stays plain white.
+    static let backgroundAssetName = "background"
+
+    /// Behind everything. The lowest item (the whiteboard) is at 0.
+    static let backgroundZPosition: CGFloat = -100
+
     // MARK: - Positions
 
     /// Where the item is on the sketch.

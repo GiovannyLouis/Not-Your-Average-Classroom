@@ -88,6 +88,7 @@ private struct LaptopLayer: View {
     var body: some View {
         TimelineView(.animation) { _ in
             LaptopView(game: game)
+                .overlay { LaptopFrameView() }      // the laptop picture, in front of the screen; it moves with it
                 .offset(x: scene.laptopOffset.x, y: -scene.laptopOffset.y)   // SpriteKit's y points up, SwiftUI's down
         }
     }
