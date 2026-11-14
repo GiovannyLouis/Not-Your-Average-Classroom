@@ -106,7 +106,9 @@ final class ParallaxScene: SKScene {
         blend += (target - blend) * modeBlendSpeed
 
         // Near layer (the laptop): centered in focus mode; in peek mode its top edge sits at `peekLaptopTop` of the screen height.
-        let laptopPeekY = (peekLaptopTop - 0.5) * size.height - laptopSize.height / 2
+        // The laptop picture sticks out above the screen it frames, and its top is the laptop's real top edge, so that
+        // overhang is taken off too (it is 0 while there is no laptop.png, and then the screen's top edge is the one).
+        let laptopPeekY = (peekLaptopTop - 0.5) * size.height - laptopSize.height / 2 - LaptopFrameLayout.topOverhang
         laptopOffset = shift(restY: lerp(0, laptopPeekY, blend),
                            multiplier: lerp(laptopFocusMultiplier, laptopPeekMultiplier, blend))
 

@@ -24,6 +24,9 @@ final class ClassroomNode: SKNode {
     /// One container per parallax layer. Each is scaled to fit the scene and moved by its layer's shift.
     private var layerNodes: [ParallaxLayer: SKNode] = [:]
 
+    /// The wall picture behind the room. It stays nil (and the wall stays plain white) while the project has no background image.
+    private var backgroundSprite: SKSpriteNode?
+
     // Greybox colors, picked from the sketch. Only used for the items that do not have their art yet.
     private let deskColor = SKColor(red: 0.60, green: 0.42, blue: 0.35, alpha: 1)
     private let windowColor = SKColor(white: 0.57, alpha: 1)
@@ -38,6 +41,8 @@ final class ClassroomNode: SKNode {
             addChild(node)
         }
 
+        addBackground()
+
         for item in ClassroomItem.allCases {
             if hasArt(item) {
                 addArt(SKTexture(imageNamed: item.assetName), of: item)
@@ -48,10 +53,11 @@ final class ClassroomNode: SKNode {
         mount(topView)
 
         #if DEBUG
-        // A typo in a file name shows up here: the item keeps its box and the name it was looking for is printed.
-        let greyboxed = ClassroomItem.allCases.filter { !hasArt($0) }.map(\.assetName)
-        if !greyboxed.isEmpty {
-            print("ClassroomNode: no image found for \(greyboxed.joined(separator: ", ")), drawing the greybox instead")
+        // A typo in a file name shows up here: the item keeps its box (or the wall its white) and the name it was looking for is printed.
+        var missing = ClassroomItem.allCases.filter { !hasArt($0) }.map(\.assetName)
+        if backgroundSprite == nil { missing.append(ClassroomLayout.backgroundAssetName) }
+        if !missing.isEmpty {
+            print("ClassroomNode: no image found for \(missing.joined(separator: ", ")), drawing the greybox / plain wall instead")
         }
         #endif
     }
@@ -70,6 +76,13 @@ final class ClassroomNode: SKNode {
         for node in layerNodes.values {
             node.setScale(scale)
         }
+
+        // The wall picture keeps its proportions and grows until it covers the whole scene (what sticks out is cropped).
+        // It is not part of any parallax layer: it stays put, at the middle of the scene, behind everything.
+        if let sprite = backgroundSprite, let imageSize = sprite.texture?.size(), imageSize.width > 0, imageSize.height > 0 {
+            let cover = max(sceneSize.width / imageSize.width, sceneSize.height / imageSize.height)
+            sprite.size = CGSize(width: imageSize.width * cover, height: imageSize.height * cover)
+        }
     }
 
     /// Slides one whole layer, in scene points, away from where the sketch puts it.
@@ -84,7 +97,22 @@ final class ClassroomNode: SKNode {
     /// SKTexture never fails (a missing image becomes a placeholder picture), so AppKit is asked instead.
     /// It finds the image whether it sits in Assets.xcassets or is a loose file in the project.
     private func hasArt(_ item: ClassroomItem) -> Bool {
-        NSImage(named: NSImage.Name(item.assetName)) != nil
+        imageExists(item.assetName)
+    }
+
+    private func imageExists(_ name: String) -> Bool {
+        NSImage(named: NSImage.Name(name)) != nil
+    }
+
+    /// The wall picture, if the project has one. Its size is set in `fit(to:)`, once the scene's size is known.
+    private func addBackground() {
+        let name = ClassroomLayout.backgroundAssetName
+        guard imageExists(name) else { return }
+
+        let sprite = SKSpriteNode(texture: SKTexture(imageNamed: name))
+        sprite.zPosition = ClassroomLayout.backgroundZPosition
+        addChild(sprite)
+        backgroundSprite = sprite
     }
 
     /// The item's art, stretched to exactly its `textureFrame`.
