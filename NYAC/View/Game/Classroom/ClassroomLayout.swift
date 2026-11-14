@@ -98,12 +98,20 @@ enum ClassroomLayout {
         }
     }
 
-    /// How far an item that the sketch cuts off at a screen edge keeps going past it.
+    /// Where the item's art is drawn. It is stretched to exactly this rectangle, so by default the art takes the place
+    /// of its greybox box. Change it for an item whose art does not have the box's proportions, or whose art
+    /// runs further off the screen than the box does. The top view still sits in the whiteboard's `frame`.
+    static func textureFrame(of item: ClassroomItem) -> CGRect {
+        frame(of: item)
+    }
+
+    /// How far a greybox box that the sketch cuts off at a screen edge keeps going past it.
     /// The layers slide when the head moves, and they lift when the pose goes back to focus, so without this the
     /// edge of a desk would slide into view (the bottom edge of the second row desks, most of all).
+    /// Art does not get this: it is drawn exactly in its `textureFrame`.
     static let edgeBleed: CGFloat = 400
 
-    /// What actually gets drawn: the sketch's frame, plus the bleed on every side where it touches the edge.
+    /// What the greybox box draws: the sketch's frame, plus the bleed on every side where it touches the edge.
     static func drawnFrame(of item: ClassroomItem) -> CGRect {
         var result = frame(of: item)
         let halfWidth = designSize.width / 2

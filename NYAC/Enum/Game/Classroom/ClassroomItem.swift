@@ -34,6 +34,22 @@ enum ClassroomItem: CaseIterable {
         }
     }
 
+    /// The name of the item's art in the project: the file name without ".png".
+    /// While the project has no image with this name, the greybox box stands in for the item.
+    var assetName: String {
+        switch self {
+        case .secondRowLeft:   return "srl"
+        case .secondRowMiddle: return "srm"
+        case .secondRowRight:  return "srr"
+        case .firstRowLeft:    return "frl"
+        case .firstRowMiddle:  return "frm"
+        case .firstRowRight:   return "frr"
+        case .window:          return "window"
+        case .door:            return "door"
+        case .whiteboard:      return "board"
+        }
+    }
+
     /// Which parallax layer the item moves with, so how fast it moves.
     var layer: ParallaxLayer {
         switch self {
