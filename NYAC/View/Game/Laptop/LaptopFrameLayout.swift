@@ -5,12 +5,12 @@
 //  Created by Vrz on 14/11/26.
 //
 
-import AppKit
 import Foundation
+import AppKit
 
 /// How the laptop picture (laptop.png) sits around the LaptopView.
 ///
-/// The LaptopView is the screen: the tab bar, the minigame and the study text. The picture is drawn in front of it,
+/// The LaptopView is the screen: the minigame and the study text. The picture is drawn in front of it,
 /// and the see-through cutout in the picture's screen is where the LaptopView shows through. Everything the LaptopView
 /// draws outside the cutout is hidden behind the picture's frame.
 ///

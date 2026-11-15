@@ -30,6 +30,17 @@ final class GameViewModel {
     /// Which menu is open on top of the game. The game keeps running behind it.
     private(set) var menu: GameMenu = .closed
 
+    /// Timed visibility for the progress card (on run start and when an objective updates).
+    private var isTemporarilyVisible = true
+
+    /// True while the player is peeking during an active run.
+    private var isPeeking = false
+
+    /// Whether the progress card should be visible: shown on start, on quest updates, and while peeking.
+    var showsProgressCard: Bool {
+        isPeeking || isTemporarilyVisible
+    }
+
     /// True while the game is getting ready (the study text is being written), before the countdown.
     var isPreparing: Bool {
         state == .preparing
@@ -40,6 +51,16 @@ final class GameViewModel {
     var showsMenuHint: Bool {
         if case .ended = state { return false }
         return menu == .closed
+    }
+
+    /// The clock as the HUD shows it, minutes and seconds ("4:07").
+    var timeText: String {
+        String(format: "%d:%02d", secondsLeft / 60, secondsLeft % 60)
+    }
+
+    /// The objectives the HUD's progress card lists, top to bottom.
+    var checklist: [GameObjective] {
+        [.minigame, .study]
     }
 
     /// The number to show while counting down (3, 2, 1), or nil outside the countdown.
@@ -83,6 +104,7 @@ final class GameViewModel {
     @ObservationIgnored var onBackToLobby: (() -> Void)?
 
     @ObservationIgnored private var timerTask: Task<Void, Never>?
+    @ObservationIgnored private var progressHideTask: Task<Void, Never>?
     @ObservationIgnored private var startDate: Date?
     @ObservationIgnored private var hasStarted = false
 
@@ -103,6 +125,8 @@ final class GameViewModel {
         // that can get the player caught, so both lead to the same check.
         lecturer.onStateChanged = { [weak self] in self?.checkCaught() }
         laptop.onTabChanged = { [weak self] in self?.checkCaught() }
+
+        observePeekMode()
     }
 
     convenience init(settings: GameSettings, peek: PeekViewModel) {
@@ -133,6 +157,8 @@ final class GameViewModel {
     func stop() {
         timerTask?.cancel()
         timerTask = nil
+        progressHideTask?.cancel()
+        progressHideTask = nil
     }
 
     /// Leaves the run. Where that leads is up to whoever owns it (see `onBackToLobby`).
@@ -170,6 +196,39 @@ final class GameViewModel {
         laptop.isEnabled = state == .running && menu == .closed
     }
 
+    // MARK: Progress Card Visibility
+
+    private func showProgressCardTemporarily(includeFadeInDelay: Bool) {
+        progressHideTask?.cancel()
+        isTemporarilyVisible = true
+
+        // When hidden, account for the 1s fade-in so the card stays fully visible for 3s before fading out.
+        let visibleDuration: Duration = includeFadeInDelay ? .seconds(4) : .seconds(3)
+
+        progressHideTask = Task { [weak self] in
+            try? await Task.sleep(for: visibleDuration)
+            guard !Task.isCancelled, let self else { return }
+            self.isTemporarilyVisible = false
+        }
+    }
+
+    private func observePeekMode() {
+        withObservationTracking {
+            _ = peek.mode
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.syncPeekVisibility()
+                if case .ended = self.state { return }
+                self.observePeekMode()
+            }
+        }
+    }
+
+    private func syncPeekVisibility() {
+        isPeeking = state == .running && peek.mode == .peek
+    }
+
     // MARK: Objectives
 
     func isDone(_ objective: GameObjective) -> Bool {
@@ -179,9 +238,17 @@ final class GameViewModel {
     /// The win rule: every objective has to be done.
     private func complete(_ objective: GameObjective) {
         guard state == .running else { return }
-        completedObjectives.insert(objective)
+        let wasInserted = completedObjectives.insert(objective).inserted
+        let isGameCompleted = completedObjectives.count == GameObjective.allCases.count
 
-        if completedObjectives.count == GameObjective.allCases.count {
+        // Skip fading in the progress card when the final objective finishes, since the win screen
+        // already tells the player they succeeded. Swap the two `if` lines below to re-enable it later.
+        if wasInserted && !isGameCompleted {
+        // if wasInserted {
+            showProgressCardTemporarily(includeFadeInDelay: !showsProgressCard)
+        }
+
+        if isGameCompleted {
             end(.won(completionTime: elapsed))
         }
     }
@@ -218,6 +285,8 @@ final class GameViewModel {
         startDate = Date()
         state = .running
         syncInput()
+        syncPeekVisibility()
+        showProgressCardTemporarily(includeFadeInDelay: false)
         lecturer.isActive = true
 
         timerTask = Task { [weak self] in
@@ -244,6 +313,11 @@ final class GameViewModel {
     private func end(_ result: GameResult) {
         timerTask?.cancel()
         timerTask = nil
+        progressHideTask?.cancel()
+        progressHideTask = nil
+        isPeeking = false
+        // Comment out the line below if you re-enable showing the progress card on game completion.
+        isTemporarilyVisible = false
         menu = .closed          // the game over screen takes over
         state = .ended(result)
         syncInput()

@@ -20,7 +20,7 @@ final class GameSettings {
 
     /// Camera-image y where the modes switch (0 = bottom of the frame, 1 = top; 0.5 = halfway).
     /// Face center above this line = peek, otherwise focus.
-    var thresholdY: CGFloat = 0.5
+    var thresholdY: CGFloat = 0.33
     static let thresholdYRange: ClosedRange<CGFloat> = 0.2...0.8
 
     /// How far the head has to move to reach the full parallax. Bigger = more sensitive.

@@ -7,7 +7,7 @@
 
 import SwiftUI
  
-/// The laptop: a tab bar with the game's clock on top, and a screen that holds Study and Minigame.
+/// The laptop: one screen that holds Study and Minigame (the clock and the progress live in the game's HUD, not here).
 /// Both tabs are always in the view tree (the hidden one is just transparent), so neither is
 /// paused or rebuilt when you switch. This view is also the only place that reads the keyboard:
 /// it hands every key to the tab that is on screen and to nobody else.
@@ -24,69 +24,18 @@ struct LaptopView: View {
     }
  
     var body: some View {
-        VStack(spacing: 0) {
-            topBar
-            screen
-        }
-        .frame(width: LaptopLayout.size.width, height: LaptopLayout.size.height)
-        .focusable()
-        .focused($isFocused)
-        .focusEffectDisabled()
-        .onAppear { isFocused = true }
-        // Nothing else in the game needs the keyboard, so if focus ever lands elsewhere
-        // (clicking a slider in the menu, say) take it straight back.
-        .onChange(of: isFocused) { _, focused in
-            if !focused { isFocused = true }
-        }
-        .onKeyPress { press in handle(press) }
-    }
- 
-    // MARK: - Top bar (tabs + shared clock)
- 
-    private var topBar: some View {
-        HStack(spacing: 8) {
-            ForEach(LaptopTab.allCases, id: \.self) { tab in
-                tabLabel(for: tab)
+        screen
+            .frame(width: LaptopLayout.size.width, height: LaptopLayout.size.height)
+            .focusable()
+            .focused($isFocused)
+            .focusEffectDisabled()
+            .onAppear { isFocused = true }
+            // Nothing else in the game needs the keyboard, so if focus ever lands elsewhere
+            // (clicking a slider in the menu, say) take it straight back.
+            .onChange(of: isFocused) { _, focused in
+                if !focused { isFocused = true }
             }
- 
-            Text("tab to switch")
-                .font(.system(size: 13, design: .monospaced))
-                .foregroundStyle(Color.gray)
-                .padding(.leading, 8)
- 
-            Spacer()
- 
-            Text(timeText)
-                .font(.system(size: 22, weight: .bold, design: .monospaced))
-                .foregroundStyle(.white)
-        }
-        .padding(.horizontal, 12)
-        .frame(width: LaptopLayout.screenSize.width, height: LaptopLayout.topBarHeight)
-        .background(Color(white: 0.12))
-    }
- 
-    private func tabLabel(for tab: LaptopTab) -> some View {
-        let isActive = laptop.activeTab == tab
-        let isDone = game.isDone(tab.objective)
- 
-        return Text(isDone ? "\(title(for: tab)) ✓" : title(for: tab))
-            .font(.system(size: 16, weight: .semibold, design: .monospaced))
-            .foregroundStyle(isActive ? Color.black : Color.white)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 5)
-            .background(isActive ? Color.white : Color.white.opacity(0.15), in: Capsule())
-    }
- 
-    private func title(for tab: LaptopTab) -> String {
-        switch tab {
-        case .study:    return "Study"
-        case .minigame: return "Minigame"
-        }
-    }
- 
-    private var timeText: String {
-        let seconds = game.secondsLeft
-        return String(format: "%d:%02d", seconds / 60, seconds % 60)
+            .onKeyPress { press in handle(press) }
     }
  
     // MARK: - Screen
