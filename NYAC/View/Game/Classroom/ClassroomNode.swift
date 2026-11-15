@@ -17,12 +17,18 @@ import SpriteKit
 /// The room is split into one node per parallax layer. The scene slides each of those nodes by its own amount
 /// (`setShift`), which is the whole parallax effect, while every item keeps its own z position for the draw order.
 /// The top view of the classroom (the one with the lecturer in it) is mounted inside the whiteboard.
+/// The lecturer himself (LecturerWalkNode) stands and walks in front of the whiteboard, in a layer of his own, because
+/// his parallax speed changes while he walks toward the player, unlike the items'.
 ///
 /// This node sits at the middle of the scene, and everything inside it is laid out in ClassroomLayout's design units.
 final class ClassroomNode: SKNode {
 
     /// One container per parallax layer. Each is scaled to fit the scene and moved by its layer's shift.
     private var layerNodes: [ParallaxLayer: SKNode] = [:]
+
+    /// The container of the lecturer. Like a layer node it is scaled to fit the scene and moved by its shift,
+    /// but its speed is the scene's to set every frame (it changes while he walks), so it is not one of the ParallaxLayers.
+    private let lecturerLayer = SKNode()
 
     /// The wall picture behind the room. It stays nil (and the wall stays plain white) while the project has no background image.
     private var backgroundSprite: SKSpriteNode?
@@ -32,7 +38,7 @@ final class ClassroomNode: SKNode {
     private let windowColor = SKColor(white: 0.57, alpha: 1)
     private let doorColor = SKColor(red: 0.71, green: 0.59, blue: 0.42, alpha: 1)
 
-    init(topView: TopViewNode) {
+    init(topView: TopViewNode, lecturerWalk: LecturerWalkNode) {
         super.init()
 
         for layer in ParallaxLayer.allCases {
@@ -40,6 +46,8 @@ final class ClassroomNode: SKNode {
             layerNodes[layer] = node
             addChild(node)
         }
+        addChild(lecturerLayer)
+        lecturerLayer.addChild(lecturerWalk)      // its own zPosition puts him between the whiteboard and the first row desks
 
         addBackground()
 
@@ -76,6 +84,7 @@ final class ClassroomNode: SKNode {
         for node in layerNodes.values {
             node.setScale(scale)
         }
+        lecturerLayer.setScale(scale)
 
         // The wall picture keeps its proportions and grows until it covers the whole scene (what sticks out is cropped).
         // It is not part of any parallax layer: it stays put, at the middle of the scene, behind everything.
@@ -89,6 +98,11 @@ final class ClassroomNode: SKNode {
     /// Everything in the layer moves together, so they all keep the same speed.
     func setShift(_ shift: CGPoint, of layer: ParallaxLayer) {
         layerNodes[layer]?.position = shift
+    }
+
+    /// Slides the lecturer's container, in scene points. The scene works out its speed every frame (see LecturerWalkLayout.multiplier).
+    func setLecturerShift(_ shift: CGPoint) {
+        lecturerLayer.position = shift
     }
 
     // MARK: - Building

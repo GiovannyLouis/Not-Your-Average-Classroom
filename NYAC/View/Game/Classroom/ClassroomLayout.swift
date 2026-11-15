@@ -61,7 +61,7 @@ enum ClassroomLayout {
     private static let layerGap: CGFloat = 10
 
     /// How much further forward the middle desk of a row is than the desks at its sides.
-    private static let middleDeskLift: CGFloat = 2
+    private static let middleDeskLift: CGFloat = 4
 
     /// Higher z = drawn in front. From the back: whiteboard 0, window and door 10, first row 20 (F 22), second row 30 (C 32).
     static func zPosition(of item: ClassroomItem) -> CGFloat {

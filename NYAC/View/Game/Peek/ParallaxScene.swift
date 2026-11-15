@@ -14,6 +14,7 @@ import SpriteKit
 ///
 /// SpriteKit draws the classroom (ClassroomNode): the desks, the window, the door and the whiteboard, each parallax layer
 /// with its own multiplier (see ClassroomLayout). The top view of the classroom, with the lecturer in it, hangs inside the whiteboard.
+/// The lecturer also stands and walks in the room as a figure (LecturerWalkNode), with a parallax speed that depends on how close he is.
 /// The nearest layer is the laptop, which is a SwiftUI view, so the scene just works out where that view
 /// belongs (`laptopOffset`) and the SwiftUI side follows it every frame.
 final class ParallaxScene: SKScene {
@@ -49,6 +50,7 @@ final class ParallaxScene: SKScene {
 
     private let lecturer: LecturerViewModel
     private let topView: TopViewNode
+    private let lecturerWalk: LecturerWalkNode
     private let classroom: ClassroomNode
 
     private var smoothed: CGPoint = .zero
@@ -62,7 +64,9 @@ final class ParallaxScene: SKScene {
         self.lecturer = lecturer
         let topView = TopViewNode(lecturer: lecturer)
         self.topView = topView
-        classroom = ClassroomNode(topView: topView)
+        let lecturerWalk = LecturerWalkNode(lecturer: lecturer)
+        self.lecturerWalk = lecturerWalk
+        classroom = ClassroomNode(topView: topView, lecturerWalk: lecturerWalk)
         super.init(size: CGSize(width: 900, height: 600))   // only a starting point: .resizeFill makes it match the SpriteView
         scaleMode = .resizeFill
     }
@@ -97,6 +101,7 @@ final class ParallaxScene: SKScene {
         lastUpdate = currentTime
         lecturer.update(deltaTime: dt)
         topView.sync()
+        lecturerWalk.sync()
 
         let headOffset = peek.headOffset
         smoothed.x += (headOffset.x - smoothed.x) * smoothing
@@ -120,6 +125,10 @@ final class ParallaxScene: SKScene {
             let multiplier = ClassroomLayout.multiplier(of: layer)
             classroom.setShift(shift(restY: poseLift * maxShift * multiplier, multiplier: multiplier), of: layer)
         }
+
+        // The lecturer follows the head like a layer too, but the closer he gets to the player, the faster.
+        let lecturerMultiplier = LecturerWalkLayout.multiplier(closeness: lecturerWalk.closeness)
+        classroom.setLecturerShift(shift(restY: poseLift * maxShift * lecturerMultiplier, multiplier: lecturerMultiplier))
     }
 
     /// Offset from the screen center = rest position - head offset * maxShift * multiplier.
