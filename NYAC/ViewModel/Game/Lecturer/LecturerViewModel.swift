@@ -34,9 +34,12 @@ final class LecturerViewModel {
     /// Seconds spent in the current stay or walk. Changes every frame, so it is not observed.
     @ObservationIgnored private var timeInPhase: TimeInterval = 0
 
+    /// Where the lecturer is on LecturerConfig.debugRoute, when there is one.
+    @ObservationIgnored private var routeIndex = 0
+
     init() {
-        // The lecturer starts standing at a random spot.
-        state = .staying(LecturerSpot.allCases.randomElement() ?? .b)
+        // The lecturer starts standing at a random spot (or at the start of the debug route).
+        state = .staying(LecturerConfig.debugRoute?.first ?? LecturerSpot.allCases.randomElement() ?? .b)
     }
 
     // MARK: - Game loop (the scene calls this every frame)
@@ -49,7 +52,7 @@ final class LecturerViewModel {
         case .staying(let spot):
             guard timeInPhase >= LecturerConfig.stayDuration else { return }
             timeInPhase -= LecturerConfig.stayDuration
-            let next = spot.neighbors.randomElement() ?? spot
+            let next = nextSpot(after: spot)
             state = .moving(from: spot, to: next)
             onStateChanged?()
 
@@ -59,5 +62,14 @@ final class LecturerViewModel {
             state = .staying(destination)
             onStateChanged?()
         }
+    }
+
+    /// Where the lecturer walks to from this spot: a random neighbor, or the next spot of the debug route.
+    private func nextSpot(after spot: LecturerSpot) -> LecturerSpot {
+        if let route = LecturerConfig.debugRoute, !route.isEmpty {
+            routeIndex = (routeIndex + 1) % route.count
+            return route[routeIndex]
+        }
+        return spot.neighbors.randomElement() ?? spot
     }
 }
