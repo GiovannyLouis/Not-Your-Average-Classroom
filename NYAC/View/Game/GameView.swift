@@ -10,7 +10,7 @@ import SpriteKit
 
 /// The game screen. The head-tracking scene fills the whole screen with the far layer,
 /// and the laptop floats in front of it as the near layer. The preparing screen, the countdown, the Escape menu
-/// and the game over screen are laid over it, each one only while it applies.
+/// and the game over screen are laid over it, each one only while it applies. The HUD sits across the top corners.
 ///
 /// Everything about the run itself lives in GameViewModel: this view only shows it and starts it.
 struct GameView: View {
@@ -34,7 +34,8 @@ struct GameView: View {
                 CountdownView(number: number)
             }
         }
-        .overlay(alignment: .topLeading) { topLeading }
+        .overlay(alignment: .topLeading) { cameraWarning }
+        .overlay { GameHUDView(game: game) }
         // The menu and the game over screen come last, so they sit in front of everything:
         // the game stays visible behind them, dimmed.
         .overlay {
@@ -53,29 +54,18 @@ struct GameView: View {
 
     // MARK: - Overlays
 
-    /// The notes in the top left corner: how to open the menu, and the camera warning when it applies.
-    private var topLeading: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // The opposite of the menu: shown while it is closed, gone while it is open (the menu says how to close it).
-            if game.showsMenuHint {
-                Text("Press Esc to open menu")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.85))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.black.opacity(0.5), in: Capsule())
-            }
-
-            // Without the camera there is no peeking, and the player has to know why.
-            if game.peek.cameraDenied {
-                Text("Camera access denied. Allow it in System Settings > Privacy & Security > Camera.")
-                    .font(.callout)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: 260, alignment: .leading)
-            }
+    /// The camera warning in the top left corner, only while it applies.
+    /// Without the camera there is no peeking, and the player has to know why.
+    @ViewBuilder
+    private var cameraWarning: some View {
+        if game.peek.cameraDenied {
+            Text("Camera access denied. Allow it in System Settings > Privacy & Security > Camera.")
+                .font(.callout)
+                .foregroundStyle(.red)
+                .frame(maxWidth: 260, alignment: .leading)
+                .padding()
+                .focusable(false)
         }
-        .padding()
-        .focusable(false)
     }
 }
 

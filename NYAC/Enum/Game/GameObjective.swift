@@ -10,4 +10,12 @@
 enum GameObjective: CaseIterable, Hashable {
     case study
     case minigame
+
+    /// How the progress card in the HUD words this objective.
+    var title: String {
+        switch self {
+        case .study:    return "Take the notes"
+        case .minigame: return "Finish the game"
+        }
+    }
 }
