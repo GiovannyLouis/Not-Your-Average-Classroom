@@ -23,10 +23,16 @@ final class AppViewModel {
     /// The one camera of the app. It opens when the app does (see `start`), so any screen can use the head tracking.
     let peek: PeekViewModel
 
+    /// The classroom behind the lobby and its settings. It is made once, so the parallax carries on when the player
+    /// goes from one to the other, and when they come back from a run.
+    let menuScene: MenuScene
+
     init() {
         let settings = GameSettings()
+        let peek = PeekViewModel(settings: settings)
         self.settings = settings
-        self.peek = PeekViewModel(settings: settings)
+        self.peek = peek
+        self.menuScene = MenuScene(peek: peek)
     }
 
     // MARK: Lifecycle

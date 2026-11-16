@@ -7,44 +7,30 @@
 
 import SwiftUI
 
-/// The main menu: the title and two buttons.
+/// The main menu page, drawn on the board: the title and two buttons. The room behind it is MenuScene
+/// (see MenuView), so this page only has what sits on the board, and it is laid out to fit inside `MenuLayout.contentFrame`.
 struct LobbyView: View {
     let app: AppViewModel
 
     var body: some View {
-        VStack(spacing: 110) {
-            Text("Not Your Average Classroom")
-                .font(.system(size: 64, design: .serif))
-                .foregroundStyle(.black)
+        VStack(spacing: 0) {
+            BoardGameTitle()
 
-            VStack(spacing: 24) {
-                LobbyButton(title: "Start") { app.startGame() }
-                LobbyButton(title: "Settings") { app.openSettings() }
-            }
+            BoardButton(title: "Start",
+                        size: MenuLayout.startButtonSize,
+                        fontSize: MenuLayout.startButtonFontSize) { app.startGame() }
+                .padding(.top, 38)
+
+            BoardButton(title: "Settings",
+                        size: MenuLayout.smallButtonSize,
+                        fontSize: MenuLayout.smallButtonFontSize) { app.openSettings() }
+                .padding(.top, 26)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white)
-    }
-}
-
-private struct LobbyButton: View {
-    let title: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 24))
-                .foregroundStyle(.white)
-                .frame(width: 260, height: 56)
-                .background(Color(red: 0.31, green: 0.37, blue: 0.68), in: RoundedRectangle(cornerRadius: 10))
-                .contentShape(RoundedRectangle(cornerRadius: 10))
-        }
-        .buttonStyle(.plain)
+        .padding(.bottom, 60)
     }
 }
 
 #Preview {
-    LobbyView(app: AppViewModel())
+    MenuView(app: AppViewModel())
         .frame(width: 1000, height: 650)
 }

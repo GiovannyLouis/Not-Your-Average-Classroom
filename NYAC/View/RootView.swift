@@ -14,13 +14,9 @@ struct RootView: View {
 
     var body: some View {
         switch app.screen {
-        case .lobby:
-            LobbyView(app: app)
-
-        case .settings:
-            SettingsView(settings: app.settings, peek: app.peek, onBack: { app.backToLobby() })
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.white)
+        case .lobby, .settings:
+            // One view for both, so the room behind the board stays (and keeps moving) when the page changes.
+            MenuView(app: app)
 
         case .game(let game):
             GameView(game: game)
