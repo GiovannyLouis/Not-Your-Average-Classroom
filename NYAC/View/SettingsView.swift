@@ -7,9 +7,9 @@
 
 import SwiftUI
 
-/// The settings card: the camera view and the head-tracking tuning (y threshold and sensitivity). The lobby shows it
-/// on its own, and the in-game menu shows it over the game. It changes GameSettings directly, so a new value
-/// is used right away, even by a run that is already going.
+/// The settings card: the camera view and the head-tracking tuning (y threshold and sensitivity). The in-game menu shows
+/// it over the game (the main screen has its own page on the board, BoardSettingsView). It changes GameSettings directly,
+/// so a new value is used right away, even by a run that is already going.
 struct SettingsView: View {
     let settings: GameSettings
 
