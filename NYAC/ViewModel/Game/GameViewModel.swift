@@ -75,16 +75,27 @@ final class GameViewModel {
         return ended
     }
 
+    /// The fastest win on record, in seconds, as the game over screen shows it: set when the run ends, win or lose.
+    /// Nil while the player has never won. A win that just beat the record is already in here.
+    private(set) var bestCompletionTime: TimeInterval?
+
+    /// True when the run that just ended was a win that set a new record (the first win counts: there was no record yet).
+    private(set) var isNewBest = false
+
     /// What the game over screen says. Nil while the run is still going, so that is also the screen's on/off switch.
     var gameOverContent: GameOverContent? {
-        result.map { GameOverContent(result: $0) }
+        result.map { GameOverContent(result: $0, bestCompletionTime: bestCompletionTime, isNewBest: isNewBest) }
     }
 
     // MARK: The parts of the game
 
-    // The next two are shared by the whole app and outlive any single run, so they are handed in instead of created here.
+    // The next three are shared by the whole app and outlive any single run, so they are handed in instead of created here.
 
     let settings: GameSettings
+
+    /// What the game remembers between launches. A run counts itself as played when its clock starts (see `startClock`)
+    /// and keeps the best completion time up to date when it ends (see `recordBestTime`).
+    let store: PlayerStore
 
     /// The app's camera and head tracking. It is already running when a run starts and keeps running after it.
     let peek: PeekViewModel
@@ -108,8 +119,9 @@ final class GameViewModel {
     @ObservationIgnored private var startDate: Date?
     @ObservationIgnored private var hasStarted = false
 
-    init(settings: GameSettings, peek: PeekViewModel, minigame: MinigameViewModel, study: TypingViewModel, lecturer: LecturerViewModel) {
+    init(settings: GameSettings, peek: PeekViewModel, store: PlayerStore, minigame: MinigameViewModel, study: TypingViewModel, lecturer: LecturerViewModel) {
         self.settings = settings
+        self.store = store
         self.peek = peek
         self.minigame = minigame
         self.study = study
@@ -129,8 +141,13 @@ final class GameViewModel {
         observePeekMode()
     }
 
+    convenience init(settings: GameSettings, peek: PeekViewModel, store: PlayerStore) {
+        self.init(settings: settings, peek: peek, store: store, minigame: MinigameViewModel(), study: TypingViewModel(), lecturer: LecturerViewModel())
+    }
+
+    /// For the previews: a store of its own, so a preview never touches the real saved data.
     convenience init(settings: GameSettings, peek: PeekViewModel) {
-        self.init(settings: settings, peek: peek, minigame: MinigameViewModel(), study: TypingViewModel(), lecturer: LecturerViewModel())
+        self.init(settings: settings, peek: peek, store: PlayerStore(defaults: UserDefaults(suiteName: "NYAC.preview") ?? .standard))
     }
 
     // MARK: Lifecycle
@@ -284,6 +301,8 @@ final class GameViewModel {
     private func startClock() {
         startDate = Date()
         state = .running
+        // The game counts as played once its clock runs. Leaving while it is still getting ready (or counting down) does not count.
+        store.countGamePlayed()
         syncInput()
         syncPeekVisibility()
         showProgressCardTemporarily(includeFadeInDelay: false)
@@ -319,8 +338,25 @@ final class GameViewModel {
         // Comment out the line below if you re-enable showing the progress card on game completion.
         isTemporarilyVisible = false
         menu = .closed          // the game over screen takes over
+        recordBestTime(for: result)         // before the state changes: the game over screen reads it as soon as it shows
         state = .ended(result)
         syncInput()
         lecturer.isActive = false
+    }
+
+    /// Keeps the best completion time. Only a win can set it, and only a faster time than the record beats it
+    /// (the same time is just a win). The first win has no record to beat, so it sets one and counts as a new best.
+    /// The game over screen shows the record after a loss too, so every ending reads it into `bestCompletionTime`.
+    private func recordBestTime(for result: GameResult) {
+        let record = store.bestCompletionTime
+
+        if case .won(let completionTime) = result, completionTime < (record ?? .infinity) {
+            store.saveBestCompletionTime(completionTime)
+            bestCompletionTime = completionTime
+            isNewBest = true
+        } else {
+            bestCompletionTime = record
+            isNewBest = false
+        }
     }
 }

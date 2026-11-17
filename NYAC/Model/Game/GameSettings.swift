@@ -11,7 +11,8 @@ import Observation
 /// Everything the player can tune. AppViewModel creates one and hands it to every run,
 /// so the values survive from one run to the next. Features only read it; settings screens write it.
 ///
-/// The values below are the defaults.
+/// The values below are the defaults. AppViewModel restores what the player saved over them when the app opens,
+/// and saves them again every time one changes (see PlayerStore).
 @MainActor
 @Observable
 final class GameSettings {
@@ -27,3 +28,4 @@ final class GameSettings {
     var sensitivity: CGFloat = 1.0
     static let sensitivityRange: ClosedRange<CGFloat> = 0.5...3
 }
+

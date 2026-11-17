@@ -108,6 +108,7 @@ enum MenuLayout {
     /// so the desks are in front of the board like in the classroom.
     static let wallAssetName = ClassroomLayout.backgroundAssetName
     static let wallZPosition = ClassroomLayout.backgroundZPosition
+    static let wallDimOpacity: CGFloat = 0.20
     static let boardZPosition = ClassroomLayout.zPosition(of: .whiteboard)
 
     static func deskZPosition(of item: ClassroomItem) -> CGFloat {
