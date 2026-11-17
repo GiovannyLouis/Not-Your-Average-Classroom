@@ -7,9 +7,10 @@
 
 import SwiftUI
 
-/// The settings card: the camera view and the head-tracking tuning (y threshold and sensitivity). The in-game menu shows
-/// it over the game (the main screen has its own page on the board, BoardSettingsView). It changes GameSettings directly,
-/// so a new value is used right away, even by a run that is already going.
+/// The settings card: the camera view, which camera to use, and the head-tracking tuning (y threshold and sensitivity).
+/// The in-game menu shows it over the game (the main screen has its own page on the board, BoardSettingsView).
+/// It changes GameSettings directly, so a new value is used right away, even by a run that is already going.
+/// (The camera goes through PeekViewModel.selectCamera instead, because the camera has to be switched too.)
 struct SettingsView: View {
     let settings: GameSettings
 
@@ -28,6 +29,7 @@ struct SettingsView: View {
             CameraPiPView(peek: peek, settings: settings, size: CGSize(width: 320, height: 240))
 
             VStack(spacing: 14) {
+                cameraRow
                 row("Y Threshold", value: settings.thresholdY) {
                     Slider(value: Bindable(settings).thresholdY, in: GameSettings.thresholdYRange)
                 }
@@ -40,6 +42,32 @@ struct SettingsView: View {
                 .padding(.top, 4)
         }
         .cardStyle(width: 560)
+    }
+
+    /// Which camera to use. Picking one switches the camera right away, so the camera view above shows the new one.
+    /// This is where a player whose default camera is not a real one (a virtual camera, say) picks their own.
+    @ViewBuilder
+    private var cameraRow: some View {
+        HStack(spacing: 14) {
+            Text("Camera")
+                .font(.system(size: 18))
+                .frame(width: 120, alignment: .leading)
+
+            if peek.cameras.isEmpty {
+                Text("No camera found")
+                    .font(.system(size: 18))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Picker("Camera", selection: Binding(get: { peek.activeCameraID ?? "" }, set: { peek.selectCamera($0) })) {
+                    ForEach(peek.cameras) { camera in
+                        Text(camera.name).tag(camera.id)
+                    }
+                }
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
     }
 
     /// A label, a slider and the number it is currently at.

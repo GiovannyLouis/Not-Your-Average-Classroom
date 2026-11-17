@@ -16,7 +16,8 @@ import SpriteKit
 ///
 /// The room is split into one node per parallax layer. The scene slides each of those nodes by its own amount
 /// (`setShift`), which is the whole parallax effect, while every item keeps its own z position for the draw order.
-/// The top view of the classroom (the one with the lecturer in it) is mounted inside the whiteboard.
+/// The top view of the classroom (the one with the lecturer in it) can be mounted inside the whiteboard, for debugging
+/// the lecturer's movement. It is switched off for now: the `mount(topView)` line in `init` is commented out.
 /// The lecturer himself (LecturerWalkNode) stands and walks in front of the whiteboard, in a layer of his own, because
 /// his parallax speed changes while he walks toward the player, unlike the items'.
 ///
@@ -58,7 +59,12 @@ final class ClassroomNode: SKNode {
                 addGreybox(item)
             }
         }
-        mount(topView)
+
+        // The top view on the whiteboard is switched off, now that the lecturer's walk is done. It is still all here:
+        // uncomment the line below to see it again, for example to debug the lecturer's movement against it.
+        // (ParallaxScene keeps feeding it every frame, so nothing else has to change.)
+        
+        // mount(topView)
 
         #if DEBUG
         // A typo in a file name shows up here: the item keeps its box (or the wall its white) and the name it was looking for is printed.

@@ -56,6 +56,7 @@ final class AppViewModel {
         withObservationTracking {
             _ = settings.thresholdY
             _ = settings.sensitivity
+            _ = settings.cameraID
         } onChange: { [weak self] in
             // onChange runs just before the new value lands, so the save waits one hop to read the new value.
             Task { @MainActor [weak self] in

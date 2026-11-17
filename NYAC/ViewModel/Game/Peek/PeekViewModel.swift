@@ -44,9 +44,21 @@ final class PeekViewModel {
     private(set) var faceBox: CGRect?               // the face we're locked onto
     private(set) var otherFaceBoxes: [CGRect] = []  // everyone else in frame (ignored)
 
+    // For the camera pickers in the settings
+    /// The cameras the Mac has right now. It updates by itself when one is plugged in or unplugged.
+    private(set) var cameras: [CameraDevice] = []
+    private var defaultCameraID: String?
+
+    /// The camera in use: the one the player chose, if it is still there, otherwise the system's default.
+    var activeCameraID: String? {
+        if let chosen = settings.cameraID, cameras.contains(where: { $0.id == chosen }) { return chosen }
+        return defaultCameraID
+    }
+
     // MARK: - Private
 
-    /// The tuning set by default or by the player (y threshold, sensitivity). This view model only reads it.
+    /// The tuning set by default or by the player (y threshold, sensitivity, camera). The player's camera choice is
+    /// the one thing this view model writes into it (see `selectCamera`).
     private let settings: GameSettings
 
     @ObservationIgnored private let service = HeadTrackingService()
@@ -63,12 +75,26 @@ final class PeekViewModel {
         service.onFrame = { [weak self] frame in
             Task { @MainActor in self?.handle(frame) }
         }
+        service.onCamerasChanged = { [weak self] in
+            Task { @MainActor in self?.refreshCameras() }
+        }
+        refreshCameras()
     }
 
     // MARK: - Intents
 
     func start() async {
+        service.selectCamera(id: settings.cameraID)     // the camera the player chose last time, before it opens
         cameraDenied = !(await service.start())
+    }
+
+    /// Switches to another camera, and remembers it for the next launch. The picture and the face of the old camera are
+    /// dropped (the preview goes black until the new camera's first frame), and the head tracking starts over from where
+    /// the player sits now, like at the start of a run.
+    func selectCamera(_ id: String) {
+        guard id != activeCameraID else { return }
+        settings.cameraID = id
+        useActiveCamera()
     }
 
     func stop() {
@@ -94,6 +120,28 @@ final class PeekViewModel {
         neutralX = nil
         mode = .focus
         headOffset = .zero
+    }
+
+    // MARK: - Cameras
+
+    /// Reads the list of cameras again. If the camera in use is a different one now (the chosen one was unplugged, or came back,
+    /// or the system's default changed), the camera is switched to it.
+    private func refreshCameras() {
+        let before = activeCameraID
+        cameras = HeadTrackingService.availableCameras()
+        defaultCameraID = HeadTrackingService.defaultCameraID
+        if activeCameraID != before {
+            useActiveCamera()
+        }
+    }
+
+    private func useActiveCamera() {
+        cameraImage = nil
+        faceBox = nil
+        otherFaceBoxes = []
+        faceDetected = false
+        recenter()
+        service.selectCamera(id: settings.cameraID)     // nil (never chose) = the system's default, wherever it points now
     }
 
     // MARK: - Frame handling

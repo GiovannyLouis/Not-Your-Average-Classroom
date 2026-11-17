@@ -27,5 +27,11 @@ final class GameSettings {
     /// How far the head has to move to reach the full parallax. Bigger = more sensitive.
     var sensitivity: CGFloat = 1.0
     static let sensitivityRange: ClosedRange<CGFloat> = 0.5...3
+
+    // MARK: Camera
+
+    /// The camera the player chose (see CameraDevice.id). Nil = they never chose, so the system's default camera is used.
+    /// The settings screens do not write this directly: they go through PeekViewModel.selectCamera, which also switches the camera.
+    var cameraID: String?
 }
 
