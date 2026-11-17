@@ -34,6 +34,9 @@ final class MenuScene: SKScene {
 
     /// The wall picture. It stays nil (and the wall stays plain white) while the project has no background image.
     private var wallSprite: SKSpriteNode?
+    
+    /// A 20% black tint over the wall so its texture doesn't compete with the board and desks.
+    private let wallDimNode = SKSpriteNode(color: .black, size: .zero)
 
     private var smoothed: CGPoint = .zero
 
@@ -53,6 +56,7 @@ final class MenuScene: SKScene {
         root.addChild(deskLayer)
 
         addWall()
+        addWallDim()
         addBoard()
         for desk in MenuLayout.desks {
             addDesk(desk)
@@ -87,6 +91,7 @@ final class MenuScene: SKScene {
         guard size.width > 0, size.height > 0 else { return }
 
         root.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        wallDimNode.size = size
 
         let scale = ClassroomLayout.scale(fitting: size)
         boardLayer.setScale(scale)
@@ -119,6 +124,13 @@ final class MenuScene: SKScene {
     }
 
     // MARK: - Building
+    
+    /// Places a translucent black layer right in front of the wall and behind the board, desks, and UI.
+    private func addWallDim() {
+        wallDimNode.alpha = MenuLayout.wallDimOpacity
+        wallDimNode.zPosition = (MenuLayout.wallZPosition + MenuLayout.boardZPosition) / 2
+        root.addChild(wallDimNode)
+    }
 
     /// Whether the project has the image yet.
     /// SKTexture never fails (a missing image becomes a placeholder picture), so AppKit is asked instead.

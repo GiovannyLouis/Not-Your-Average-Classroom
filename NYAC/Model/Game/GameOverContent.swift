@@ -23,7 +23,12 @@ struct GameOverContent {
     /// Nil when the ending has no time to show.
     let stat: Stat?
 
-    init(result: GameResult) {
+    /// The player's best completion time, next to the time above, win or lose. It says "New best completion time!"
+    /// when this run just set the record. Nil while the player has never won, since there is no record to show yet.
+    let bestStat: Stat?
+
+    /// `bestCompletionTime` is the record as it stands after this run, and `isNewBest` says this run just set it.
+    init(result: GameResult, bestCompletionTime: TimeInterval? = nil, isNewBest: Bool = false) {
         switch result {
         case .won(let completionTime):
             title = "YOU WIN"
@@ -39,6 +44,13 @@ struct GameOverContent {
             title = "YOU LOSE"
             message = "You got caught playing game in the middle of the class!"
             stat = Stat(label: "Time", value: Self.clockText(survivedFor))
+        }
+
+        if let bestCompletionTime {
+            bestStat = Stat(label: isNewBest ? "New best completion time!" : "Best completion time",
+                            value: Self.clockText(bestCompletionTime))
+        } else {
+            bestStat = nil
         }
     }
 
