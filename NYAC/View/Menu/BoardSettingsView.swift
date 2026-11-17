@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-/// The settings page of the main screen, drawn on the board: the camera view and the two head-tracking sliders.
+/// The settings page of the main screen, drawn on the board: the camera view with its camera picker, and the two
+/// head-tracking sliders.
 /// It is laid out to fit inside `MenuLayout.contentFrame`, and the room behind it keeps moving with the head,
 /// so the player can feel what a sensitivity does while they change it. The in-game menu has its own card (SettingsView).
 ///
@@ -25,9 +26,14 @@ struct BoardSettingsView: View {
         VStack(spacing: 28) {
             BoardTitleText(text: "Settings", size: 84)
 
-            HStack(spacing: 60) {
+            HStack(spacing: 80) {
                 // Next to the sliders, so the yellow line can be checked against the face while the threshold moves.
-                CameraPiPView(peek: peek, settings: settings, size: CGSize(width: 480, height: 360))
+                // The camera picker is under it: pick another camera and this view shows it at once.
+                VStack(spacing: 16) {
+                    CameraPiPView(peek: peek, settings: settings, size: CGSize(width: 380, height: 285))
+                    BoardCameraPicker(peek: peek)
+                }
+                .frame(width: 380)
 
                 VStack(alignment: .leading, spacing: 40) {
                     row("Y Threshold", value: Bindable(settings).thresholdY, range: GameSettings.thresholdYRange)

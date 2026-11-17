@@ -13,7 +13,8 @@ import SpriteKit
 /// In both poses, each layer moves opposite to your head, scaled by its own multiplier.
 ///
 /// SpriteKit draws the classroom (ClassroomNode): the desks, the window, the door and the whiteboard, each parallax layer
-/// with its own multiplier (see ClassroomLayout). The top view of the classroom, with the lecturer in it, hangs inside the whiteboard.
+/// with its own multiplier (see ClassroomLayout). The top view of the classroom, with the lecturer in it, can hang inside the
+/// whiteboard for debugging (it is off for now, see ClassroomNode.init).
 /// The lecturer also stands and walks in the room as a figure (LecturerWalkNode), with a parallax speed that depends on how close he is.
 /// The nearest layer is the laptop, which is a SwiftUI view, so the scene just works out where that view
 /// belongs (`laptopOffset`) and the SwiftUI side follows it every frame.

@@ -27,6 +27,7 @@ final class PlayerStore {
     private enum Key {
         static let thresholdY = "settings.thresholdY"
         static let sensitivity = "settings.sensitivity"
+        static let cameraID = "settings.cameraID"
         static let gamesPlayed = "progress.gamesPlayed"
         static let bestCompletionTime = "progress.bestCompletionTime"
     }
@@ -42,12 +43,19 @@ final class PlayerStore {
         if let saved = number(for: Key.sensitivity) {
             settings.sensitivity = Self.clamped(CGFloat(saved), to: GameSettings.sensitivityRange)
         }
+        // The camera is kept even when it is not plugged in right now: it is used again as soon as it is back.
+        settings.cameraID = defaults.string(forKey: Key.cameraID)
     }
 
     /// Saves the settings as they are now.
     func save(_ settings: GameSettings) {
         defaults.set(Double(settings.thresholdY), forKey: Key.thresholdY)
         defaults.set(Double(settings.sensitivity), forKey: Key.sensitivity)
+        if let cameraID = settings.cameraID {
+            defaults.set(cameraID, forKey: Key.cameraID)
+        } else {
+            defaults.removeObject(forKey: Key.cameraID)
+        }
     }
 
     // MARK: - Games played
