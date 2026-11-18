@@ -24,23 +24,33 @@ struct BoardCameraPicker: View {
             .pickerStyle(.inline)
             .labelsHidden()
         } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "video")
+            HStack(spacing: 8) {
+                Image(systemName: "video.fill")
                 Text(currentName)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    .minimumScaleFactor(0.75)
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.up.chevron.down")
             }
-            .font(.system(size: 30))
+            .font(.system(size: 16))
             .foregroundStyle(.black)
-            .padding(.horizontal, 24)
-            .frame(height: 64)
-            .overlay(Capsule().stroke(.black, lineWidth: 5))
+            .padding(.horizontal, 22)
+            .frame(height: 40)
+            .overlay(Capsule().stroke(.black, lineWidth: 3))
+            .background(
+                Capsule()
+                    .fill(.white.opacity(0.92))
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(.black, lineWidth: 2)
+            )
             .contentShape(Capsule())
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.button)
+        .buttonStyle(.plain)
         .menuIndicator(.hidden)
+        .opacity(peek.cameras.isEmpty ? 0.5 : 1.0)
         .disabled(peek.cameras.isEmpty)
     }
 

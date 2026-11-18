@@ -5,16 +5,18 @@
 //  Created by Vrz on 08/11/26.
 //
 
-
 import SwiftUI
 
-/// The outlined pill button used on every card (game over, in-game menu, settings).
+/// The outlined pill button used on every card (game over, in-game menu, settings). It clicks when it is pressed.
 struct PillButton: View {
     let title: String
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            SoundService.shared.play(.click)
+            action()
+        } label: {
             Text(title)
                 .font(.system(size: 18))
                 .padding(.horizontal, 36)

@@ -20,16 +20,22 @@ final class TypingViewModel {
     /// Set when generation failed and the fallback text is being used.
     private(set) var notice: String?
 
+    /// How many wrong characters have been typed so far (it only goes up, deleting them does not take it back).
+    /// It goes up in the same moment the wrong character shows up in red, and the view shakes every time it changes.
+    private(set) var wrongKeyCount = 0
+
     private var test = TypingTest(text: "")
 
     /// Called once when the whole text has been typed correctly. The game uses it to mark this objective as done.
     @ObservationIgnored var onCompleted: (() -> Void)?
 
     @ObservationIgnored private let textService: any TextGenerating
+    @ObservationIgnored private let sound: SoundService
     @ObservationIgnored private var startDate: Date?
 
-    init(textService: any TextGenerating = FoundationModelTextService()) {
+    init(textService: any TextGenerating = FoundationModelTextService(), sound: SoundService = .shared) {
         self.textService = textService
+        self.sound = sound
     }
 
     // MARK: Output for the view
@@ -74,14 +80,24 @@ final class TypingViewModel {
         guard status == .idle || status == .running else { return }
         if status == .idle { start() }
 
+        // Every character of the text has a key already (right or wrong): there is nothing left to type onto.
+        let index = test.typed.count
+        guard index < test.text.count else { return }
+
+        // The key is wrong when it is not the character the text asks for here. That is exactly when it shows up in red.
+        let isWrong = character != test.text[index]
+
         test.type(character)
+        sound.play(.typing)
+        if isWrong { wrongKeyCount += 1 }
 
         if test.isCompleted { finish() }
     }
 
     func deleteLast() {
-        guard status == .running else { return }
+        guard status == .running, !test.typed.isEmpty else { return }
         test.deleteLast()
+        sound.play(.backspace)
     }
 
     /// Throws the current attempt away and starts over with a freshly generated text.
