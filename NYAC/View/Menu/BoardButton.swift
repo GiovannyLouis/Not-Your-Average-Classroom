@@ -11,6 +11,7 @@ import AppKit
 // The pieces the pages on the board are made of. Their sizes are in design units (see MenuLayout), the page is scaled as a whole.
 
 /// A black rounded button with white text, like on the mock-up. "Start" and "Settings" are the same button in two sizes.
+/// It clicks when it is pressed.
 struct BoardButton: View {
     let title: String
     let size: CGSize
@@ -23,7 +24,10 @@ struct BoardButton: View {
         // 0.20 matches the hi-fi button corners; keep 0.32 if you prefer rounder ends.
         let shape = RoundedRectangle(cornerRadius: size.height * 0.20)
 
-        Button(action: action) {
+        Button {
+            SoundService.shared.play(.click)
+            action()
+        } label: {
             Text(title)
                 .font(.system(size: fontSize, weight: .bold))
                 .foregroundStyle(.white)

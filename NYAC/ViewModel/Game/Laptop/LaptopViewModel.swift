@@ -43,6 +43,13 @@ final class LaptopViewModel {
         self.minigame = minigame
         self.study = study
         self.minigameScene = MinigameScene(viewModel: minigame)
+
+        // The minigame keeps running behind the Study tab, behind the menu and behind the game over screen, and a car
+        // can still hit the chicken there. The minigame makes its sounds only while the player is looking at it.
+        minigame.isAudible = { [weak self] in
+            guard let self else { return false }
+            return self.isEnabled && self.activeTab == .minigame
+        }
     }
 
     // MARK: Tabs

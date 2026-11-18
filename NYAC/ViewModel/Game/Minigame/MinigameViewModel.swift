@@ -29,9 +29,16 @@ final class MinigameViewModel: ObservableObject {
     /// Called once when the player reaches the finish. The game uses it to mark this objective as done.
     var onCompleted: (() -> Void)?
 
+    /// Asked before every sound. The laptop says no while the minigame is not what the player is looking at
+    /// (see LaptopViewModel), because the world keeps running behind the other tab and a hit there must not be heard.
+    var isAudible: () -> Bool = { true }
+
+    private let sound: SoundService
+
     private var restartCountdown: TimeInterval = 0
 
-    init() {
+    init(sound: SoundService = .shared) {
+        self.sound = sound
         startNewRun()
     }
 
@@ -63,6 +70,7 @@ final class MinigameViewModel: ObservableObject {
         playerX = x
         if state == .ready { state = .playing }            // the first move starts the run
 
+        playSound(.hop)                                    // the hop first, then whatever it lands on (a hit, a splash)
         resolveHazards()
         if state == .playing && playerRow == rows.count - 1 { finish(.won) }
     }
@@ -119,7 +127,19 @@ final class MinigameViewModel: ObservableObject {
     private func finish(_ outcome: Outcome) {
         state = .ended(outcome)
         restartCountdown = MinigameConfig.restartDelay
+
+        switch outcome {
+        case .hitByCar: playSound(.hit)
+        case .drowned:  playSound(.drown)
+        case .won:      break           // the hop onto the finish row already made its sound
+        }
+
         if outcome == .won { onCompleted?() }
+    }
+
+    private func playSound(_ sound: Sound) {
+        guard isAudible() else { return }
+        self.sound.play(sound)
     }
 
     private func startNewRun() {

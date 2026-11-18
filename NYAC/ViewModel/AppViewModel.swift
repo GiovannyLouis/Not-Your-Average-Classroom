@@ -33,11 +33,14 @@ final class AppViewModel {
     /// goes from one to the other, and when they come back from a run.
     let menuScene: MenuScene
 
+    /// The app's sounds. The menu music plays on the lobby and its settings, and every run gets this too.
+    @ObservationIgnored private let sound: SoundService
+
     convenience init() {
         self.init(store: PlayerStore())
     }
 
-    init(store: PlayerStore) {
+    init(store: PlayerStore, sound: SoundService = .shared) {
         let settings = GameSettings()
         store.load(into: settings)          // the saved values replace the defaults before anything reads them
         let peek = PeekViewModel(settings: settings)
@@ -45,6 +48,7 @@ final class AppViewModel {
         self.store = store
         self.peek = peek
         self.menuScene = MenuScene(peek: peek)
+        self.sound = sound
 
         observeSettings()
     }
@@ -69,14 +73,21 @@ final class AppViewModel {
 
     // MARK: Lifecycle
 
-    /// Opens the camera. It stays on for as long as the app is open.
+    /// Opens the camera, which stays on for as long as the app is open, and starts the menu music.
     func start() async {
+        // The music goes first: opening the camera can take a while (the permission question, for one).
+        // The app opens on the lobby, so that is where the music belongs.
+        switch screen {
+        case .lobby, .settings: sound.startLoop(.bgm, fadeIn: SoundConfig.musicFadeIn)
+        case .game:             break
+        }
         await peek.start()
     }
 
-    /// Closes the camera. Called when the app's window goes away.
+    /// Closes the camera and the music. Called when the app's window goes away.
     func stop() {
         peek.stop()
+        sound.stopLoop(.bgm)
     }
 
     // MARK: Navigation
@@ -84,7 +95,10 @@ final class AppViewModel {
     func startGame() {
         guard case .lobby = screen else { return }
 
-        let game = GameViewModel(settings: settings, peek: peek, store: store)
+        // The menu music stops for the run (the run has its own sounds, and no music).
+        sound.stopLoop(.bgm, fadeOut: SoundConfig.musicFadeOut)
+
+        let game = GameViewModel(settings: settings, peek: peek, store: store, sound: sound)
         game.onBackToLobby = { [weak self] in self?.backToLobby() }
         screen = .game(game)
     }
@@ -96,5 +110,7 @@ final class AppViewModel {
 
     func backToLobby() {
         screen = .lobby
+        // Back from a run, the menu music starts again. Back from the settings it is already playing, so nothing happens.
+        sound.startLoop(.bgm, fadeIn: SoundConfig.musicFadeIn)
     }
 }

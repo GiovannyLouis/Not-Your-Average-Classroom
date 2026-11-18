@@ -119,15 +119,24 @@ final class GameViewModel {
     @ObservationIgnored private var startDate: Date?
     @ObservationIgnored private var hasStarted = false
 
-    init(settings: GameSettings, peek: PeekViewModel, store: PlayerStore, minigame: MinigameViewModel, study: TypingViewModel, lecturer: LecturerViewModel) {
+    /// The sounds the run itself makes: the peek sounds, and the win or lose at the end. The parts make their own
+    /// (typing, the minigame, the lecturer's footsteps).
+    @ObservationIgnored private let sound: SoundService
+
+    /// The pose the peek sounds last reported, so a sound only plays when the pose really changed.
+    @ObservationIgnored private var lastPeekMode: HeadMode = .focus
+
+    init(settings: GameSettings, peek: PeekViewModel, store: PlayerStore, minigame: MinigameViewModel, study: TypingViewModel, lecturer: LecturerViewModel, sound: SoundService = .shared) {
         self.settings = settings
         self.store = store
         self.peek = peek
         self.minigame = minigame
         self.study = study
         self.lecturer = lecturer
+        self.sound = sound
         self.laptop = LaptopViewModel(minigame: minigame, study: study)
         self.parallaxScene = ParallaxScene(lecturer: lecturer, peek: peek)
+        self.lastPeekMode = peek.mode
 
         // A part only reports "I'm done" or "something changed". The game decides what that means for the run.
         minigame.onCompleted = { [weak self] in self?.complete(.minigame) }
@@ -141,8 +150,12 @@ final class GameViewModel {
         observePeekMode()
     }
 
-    convenience init(settings: GameSettings, peek: PeekViewModel, store: PlayerStore) {
-        self.init(settings: settings, peek: peek, store: store, minigame: MinigameViewModel(), study: TypingViewModel(), lecturer: LecturerViewModel())
+    convenience init(settings: GameSettings, peek: PeekViewModel, store: PlayerStore, sound: SoundService = .shared) {
+        self.init(settings: settings, peek: peek, store: store,
+                  minigame: MinigameViewModel(sound: sound),
+                  study: TypingViewModel(sound: sound),
+                  lecturer: LecturerViewModel(sound: sound),
+                  sound: sound)
     }
 
     /// For the previews: a store of its own, so a preview never touches the real saved data.
@@ -158,7 +171,9 @@ final class GameViewModel {
         hasStarted = true
 
         // The camera has been on since the app opened, so the run only has to start over from where the player sits now.
+        // That puts the pose back to focus, which is not a peek sound: it is taken as the starting pose.
         peek.recenter()
+        lastPeekMode = peek.mode
 
         // The countdown waits for the study text, so it only begins once the text is written.
         await study.loadNewText()
@@ -176,6 +191,7 @@ final class GameViewModel {
         timerTask = nil
         progressHideTask?.cancel()
         progressHideTask = nil
+        lecturer.isActive = false       // also silences his footsteps: the scene is gone, so nothing would stop them otherwise
     }
 
     /// Leaves the run. Where that leads is up to whoever owns it (see `onBackToLobby`).
@@ -236,6 +252,7 @@ final class GameViewModel {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.syncPeekVisibility()
+                self.playPeekSound()
                 if case .ended = self.state { return }
                 self.observePeekMode()
             }
@@ -244,6 +261,22 @@ final class GameViewModel {
 
     private func syncPeekVisibility() {
         isPeeking = state == .running && peek.mode == .peek
+    }
+
+    /// The head going up into peek, or back down into focus, makes its sound: the laptop drops, or comes back up.
+    /// Only while the game is on (not while the text is still being written, and not once the run is over),
+    /// and only when the pose really changed.
+    private func playPeekSound() {
+        let mode = peek.mode
+        guard mode != lastPeekMode else { return }
+        lastPeekMode = mode
+
+        switch state {
+        case .countdown, .running:
+            sound.play(mode == .peek ? .peekUp : .peekDown)
+        case .preparing, .ended:
+            break
+        }
     }
 
     // MARK: Objectives
@@ -341,7 +374,14 @@ final class GameViewModel {
         recordBestTime(for: result)         // before the state changes: the game over screen reads it as soon as it shows
         state = .ended(result)
         syncInput()
-        lecturer.isActive = false
+        lecturer.isActive = false           // his footsteps stop with him
+
+        // The ending's sound: a win is a win, anything else (caught, time up) is a loss.
+        if case .won = result {
+            sound.play(.win)
+        } else {
+            sound.play(.lose)
+        }
     }
 
     /// Keeps the best completion time. Only a win can set it, and only a faster time than the record beats it
