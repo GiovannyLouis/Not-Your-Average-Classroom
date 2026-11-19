@@ -12,7 +12,12 @@ struct Row {
     let direction: LaneDirection
     let speed: CGFloat                         // cells per second
     let interval: TimeInterval                 // seconds between spawns
-    let obstacleWidth: CGFloat                 // car / log length in cells
+    let obstacleWidth: CGFloat                 // car / log length in cells (logs: a whole number, the tiles of the log picture)
+
+    // Set once when the level is built, and only about how the row looks.
+    var roadPart: RoadPart = .middle           // road rows: start (sidewalk below), middle or end (sidewalk above)
+    var car: CarModel?                         // road rows: the car every car of this row is. Nil on the other rows
+
     var obstacles: [Obstacle] = []
     var spawnTimer: TimeInterval = 0
 

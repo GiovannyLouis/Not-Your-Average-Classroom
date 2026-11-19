@@ -71,7 +71,7 @@ struct TypingView: View {
             case .loading:
                 Text("generating text...")
             case .finished:
-                Text("\(viewModel.wpm) wpm   ·   done")
+                Text("Done")
             case .idle, .running:
                 Text("")
             }

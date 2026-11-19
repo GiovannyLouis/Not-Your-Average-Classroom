@@ -19,6 +19,9 @@ final class MinigameViewModel: ObservableObject {
     private(set) var playerX: CGFloat = 0          // in cells, may sit between cells on a log
     private(set) var levelVersion = 0              // bumps whenever a new level is generated
 
+    /// The way the chicken faces: the way it last hopped (forward when a run starts). The scene turns the picture to it.
+    private(set) var facing: Move = .up
+
     /// How far along the level the chicken is: 0 on the start row, 1 on the finish row.
     /// It goes back down when the chicken hops back, and resets with a new run.
     var progress: Double {
@@ -70,7 +73,9 @@ final class MinigameViewModel: ObservableObject {
         playerX = x
         if state == .ready { state = .playing }            // the first move starts the run
 
-        playSound(.hop)                                    // the hop first, then whatever it lands on (a hit, a splash)
+        facing = direction                                 // it faces the way it went
+        // The hop first, then whatever it lands on (a hit, a splash). Its pitch goes with the way the chicken now faces.
+        playSound(.hop, pitch: SoundConfig.hopPitch(facing: facing))
         resolveHazards()
         if state == .playing && playerRow == rows.count - 1 { finish(.won) }
     }
@@ -137,9 +142,10 @@ final class MinigameViewModel: ObservableObject {
         if outcome == .won { onCompleted?() }
     }
 
-    private func playSound(_ sound: Sound) {
+    /// `pitch` is in cents (100 = one semitone) and leaves the sound as it is at 0 (see SoundService.play(_:pitch:)).
+    private func playSound(_ sound: Sound, pitch: Float = 0) {
         guard isAudible() else { return }
-        self.sound.play(sound)
+        self.sound.play(sound, pitch: pitch)
     }
 
     private func startNewRun() {
@@ -147,6 +153,7 @@ final class MinigameViewModel: ObservableObject {
         levelVersion += 1
         playerRow = 0
         playerX = CGFloat(MinigameConfig.columns / 2) + 0.5    // middle cell of the start row
+        facing = .up                                           // every run starts facing forward
         restartCountdown = 0
         state = .ready
     }

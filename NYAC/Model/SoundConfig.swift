@@ -5,7 +5,6 @@
 //  Created by Vrz on 18/11/26.
 //
 
-
 import Foundation
 
 /// Everything about the sound you may want to tweak, in one place.
@@ -32,6 +31,23 @@ enum SoundConfig {
         case .hit:        return 0.8
         case .drown:      return 0.8
         case .footsteps:  return 0.6
+        }
+    }
+
+    // MARK: - Pitch
+
+    /// The sounds that can be played at a different pitch than their file (see SoundService.play(_:pitch:)).
+    /// They are made ready when the app opens, so the first one does not stall the game.
+    static let pitchedSounds: [Sound] = [.hop]
+
+    /// The pitch of the hop sound by the way the chicken faces, in cents (100 cents = one semitone, 12 semitones = an octave).
+    /// Forward is a little higher, sideways is the file as it is, backward is a little lower.
+    /// Make it bigger for a clearer difference. All 0 = every hop is the file as it is.
+    static func hopPitch(facing move: Move) -> Float {
+        switch move {
+        case .up:            return 80
+        case .left, .right:  return 0
+        case .down:          return -80
         }
     }
 

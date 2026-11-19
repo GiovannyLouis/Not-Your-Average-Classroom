@@ -15,7 +15,6 @@ final class TypingViewModel {
     static let fallbackText = "The quick brown fox jumps over the lazy dog."
 
     private(set) var status: TypingStatus = .loading
-    private(set) var wpm = 0
 
     /// Set when generation failed and the fallback text is being used.
     private(set) var notice: String?
@@ -58,7 +57,6 @@ final class TypingViewModel {
     /// Generates a new text and gets the game ready for the first keystroke.
     func loadNewText() async {
         startDate = nil
-        wpm = 0
         notice = nil
         test = TypingTest(text: "")
         status = .loading
@@ -107,7 +105,7 @@ final class TypingViewModel {
     }
 
     // MARK: Progress
-    // The clock lives in the game. This view model only remembers when typing began (for WPM)
+    // The clock lives in the game. This view model only remembers when typing began
     // and tells the game once the text is finished.
 
     private func start() {
@@ -117,12 +115,6 @@ final class TypingViewModel {
 
     private func finish() {
         status = .finished
-
-        // Standard WPM: one "word" = 5 correct characters.
-        let elapsed = Date().timeIntervalSince(startDate ?? Date())
-        let minutes = max(elapsed, 1) / 60
-        wpm = Int((Double(test.correctCount) / 5) / minutes)
-
         onCompleted?()
     }
 }
