@@ -19,8 +19,8 @@ struct MinigameView: View {
             .frame(width: MinigameLayout.size.width, height: MinigameLayout.size.height)
             .overlay(alignment: .top) {
                 MinigameProgressBar(progress: viewModel.progress)
-                    .padding(.top, 12)
-                    .padding(.horizontal, 16)
+                    .padding(.top, 32)
+                    .padding(.horizontal, 48)
             }   // inside the frame: the screen keeps its size
             .overlay { resultLabel }
     }

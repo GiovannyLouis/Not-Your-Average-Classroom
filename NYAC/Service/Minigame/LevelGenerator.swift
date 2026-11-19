@@ -11,19 +11,21 @@ import Foundation
 enum LevelGenerator {
 
     // Tuning knobs. Speeds are cells per second, gaps are cells between neighbours.
+    // A road row picks one of the three cars (CarModel, each with its own length) for all of its cars.
     private static let carSpeed: ClosedRange<CGFloat> = 1.5...4.0
-    private static let carWidth: ClosedRange<CGFloat> = 1.4...2.2
     private static let carGap: ClosedRange<CGFloat> = 3.0...6.0
 
+    // A log is the 1-cell log picture repeated `logTiles` times, so its length is a whole number of cells.
     private static let logSpeed: ClosedRange<CGFloat> = 0.8...2.0
-    private static let logWidth: ClosedRange<CGFloat> = 2.0...4.0
+    private static let logTiles: ClosedRange<Int> = 2...4
     private static let logGap: ClosedRange<CGFloat> = 1.2...2.5
 
     static func makeLevel() -> [Row] {
         var rows: [Row] = [.safe]
         for group in makeGroups() {
-            for _ in 0..<group.count {
-                rows.append(makeRow(type: group.type))
+            for index in 0..<group.count {
+                // Only a road looks different from one row to the next: its first row has the sidewalk below, its last above.
+                rows.append(makeRow(type: group.type, roadPart: RoadPart.of(index: index, count: group.count)))
             }
         }
         rows.append(.safe)
@@ -71,35 +73,41 @@ enum LevelGenerator {
 
     // MARK: - Rows
 
-    private static func makeRow(type: RowType) -> Row {
+    private static func makeRow(type: RowType, roadPart: RoadPart) -> Row {
         let direction: LaneDirection = Bool.random() ? .left : .right
 
         switch type {
         case .safe:
             return .safe
         case .road:
+            // The row's cars are all this one car, so they are all the same length.
+            let car = CarModel.allCases.randomElement() ?? .car1
             return makeLane(type: .road, direction: direction,
-                            speedRange: carSpeed, widthRange: carWidth, gapRange: carGap)
+                            speedRange: carSpeed, width: car.width, gapRange: carGap,
+                            roadPart: roadPart, car: car)
         case .river:
+            let width = CGFloat(Int.random(in: logTiles))
             return makeLane(type: .river, direction: direction,
-                            speedRange: logSpeed, widthRange: logWidth, gapRange: logGap)
+                            speedRange: logSpeed, width: width, gapRange: logGap,
+                            roadPart: .middle, car: nil)
         }
     }
 
     private static func makeLane(type: RowType,
                                  direction: LaneDirection,
                                  speedRange: ClosedRange<CGFloat>,
-                                 widthRange: ClosedRange<CGFloat>,
-                                 gapRange: ClosedRange<CGFloat>) -> Row {
+                                 width: CGFloat,
+                                 gapRange: ClosedRange<CGFloat>,
+                                 roadPart: RoadPart,
+                                 car: CarModel?) -> Row {
         let speed = CGFloat.random(in: speedRange)
-        let width = CGFloat.random(in: widthRange)
         let gap = CGFloat.random(in: gapRange)
 
         // Time between spawns that leaves `gap` cells between neighbouring obstacles.
         let interval = TimeInterval((width + gap) / speed)
 
         var row = Row(type: type, direction: direction, speed: speed,
-                      interval: interval, obstacleWidth: width)
+                      interval: interval, obstacleWidth: width, roadPart: roadPart, car: car)
         warmUp(&row)
         return row
     }

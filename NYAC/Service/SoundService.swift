@@ -5,7 +5,6 @@
 //  Created by Vrz on 18/11/26.
 //
 
-
 import AVFoundation
 import AppKit
 
@@ -50,6 +49,28 @@ final class SoundService {
     /// The loops that are playing now.
     private var loops: [Sound: AVAudioPlayer] = [:]
 
+    /// The one-shots that can be played at another pitch (SoundConfig.pitchedSounds). AVAudioPlayer cannot change the
+    /// pitch, so these play through a small AVAudioEngine of their own instead. It is made when the first one is needed.
+    private var engine: AVAudioEngine?
+    private var pitched: [Sound: PitchedSound] = [:]
+    private var cannotPitch: Set<Sound> = []
+
+    /// One voice: a player node that feeds a varispeed unit, which is what changes the pitch.
+    private final class PitchedVoice {
+        let player = AVAudioPlayerNode()
+        let varispeed = AVAudioUnitVarispeed()
+
+        /// Whether it is still playing a sound. `generation` tells a sound that has ended from one that was cut short.
+        var isBusy = false
+        var generation = 0
+    }
+
+    /// A sound's whole file in memory, and its voices (SoundConfig.maxOverlap of them, so it can overlap itself).
+    private struct PitchedSound {
+        let buffer: AVAudioPCMBuffer
+        let voices: [PitchedVoice]
+    }
+
     init() {
         for sound in Sound.allCases {
             _ = source(for: sound)
@@ -69,6 +90,11 @@ final class SoundService {
                 pools[sound] = [player]
             }
         }
+
+        // The same for the pitched ones: their voices are built and the engine is started now, not on the first hop.
+        for sound in SoundConfig.pitchedSounds where pitchedSound(for: sound) != nil {
+            _ = startEngine()
+        }
     }
 
     // MARK: - One-shots
@@ -79,6 +105,43 @@ final class SoundService {
         player.volume = SoundConfig.volume(of: sound)
         player.currentTime = 0
         player.play()
+    }
+
+    /// Plays the sound once, at another pitch: `pitch` is in cents (100 = one semitone, positive = higher).
+    /// At 0 it is the plain `play`. If the pitched version cannot be made (the file is not found, or is a data asset, or the
+    /// engine does not start), it plays the sound as it is: a sound at the wrong pitch is better than none.
+    func play(_ sound: Sound, pitch cents: Float) {
+        guard cents != 0 else {
+            play(sound)
+            return
+        }
+        guard !SoundConfig.isMuted else { return }
+
+        guard let pitched = pitchedSound(for: sound), startEngine() else {
+            play(sound)
+            return
+        }
+
+        // A voice that is free, or else the first one, which is cut short.
+        let voice = pitched.voices.first(where: { !$0.isBusy }) ?? pitched.voices[0]
+
+        // Playing faster makes it higher, slower makes it lower: 1200 cents are an octave, a factor of 2.
+        voice.varispeed.rate = exp2(cents / 1200)
+        voice.player.volume = SoundConfig.volume(of: sound)
+
+        voice.generation += 1
+        let generation = voice.generation
+        voice.isBusy = true
+
+        // The handler comes on the audio thread (that is why it is @Sendable: it must not run as main-actor code),
+        // so it hands over to the main one. A voice that was cut short and is playing a newer sound by then has a
+        // newer generation, and is left busy.
+        voice.player.scheduleBuffer(pitched.buffer, at: nil, options: .interrupts, completionCallbackType: .dataPlayedBack) { @Sendable _ in
+            Task { @MainActor in
+                if voice.generation == generation { voice.isBusy = false }
+            }
+        }
+        voice.player.play()
     }
 
     /// A player that is not busy, or a new one while the sound has fewer than `maxOverlap`,
@@ -126,6 +189,68 @@ final class SoundService {
         Task { [player] in
             try? await Task.sleep(for: .seconds(fadeOut))
             player.stop()
+        }
+    }
+
+    // MARK: - Pitched voices
+
+    /// The sound's file read into memory with its voices wired to the engine, or nil when that cannot be done.
+    /// Only a loose audio file can be pitched (a data asset in Assets.xcassets plays as it is).
+    private func pitchedSound(for sound: Sound) -> PitchedSound? {
+        if let known = pitched[sound] { return known }
+        guard !cannotPitch.contains(sound) else { return nil }
+
+        guard case .file(let url)? = source(for: sound) else {
+            cannotPitch.insert(sound)
+            return nil
+        }
+
+        do {
+            let file = try AVAudioFile(forReading: url)
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)) else {
+                throw CocoaError(.fileReadUnknown)
+            }
+            try file.read(into: buffer)
+
+            let engine = self.engine ?? AVAudioEngine()
+            self.engine = engine
+
+            var voices: [PitchedVoice] = []
+            for _ in 0..<SoundConfig.maxOverlap {
+                let voice = PitchedVoice()
+                engine.attach(voice.player)
+                engine.attach(voice.varispeed)
+                engine.connect(voice.player, to: voice.varispeed, format: buffer.format)
+                engine.connect(voice.varispeed, to: engine.mainMixerNode, format: buffer.format)
+                voices.append(voice)
+            }
+
+            let made = PitchedSound(buffer: buffer, voices: voices)
+            pitched[sound] = made
+            return made
+        } catch {
+            cannotPitch.insert(sound)
+            #if DEBUG
+            print("SoundService: \(sound.assetName) could not be set up for pitch changes (\(error.localizedDescription)), so it plays as it is")
+            #endif
+            return nil
+        }
+    }
+
+    /// Makes sure the engine is running (a player node must never be played while it is not: that is a crash, not an error).
+    /// It also stops by itself when the Mac's sound device changes, which is why this is asked before every pitched sound.
+    private func startEngine() -> Bool {
+        guard let engine else { return false }
+        if engine.isRunning { return true }
+
+        do {
+            try engine.start()
+            return true
+        } catch {
+            #if DEBUG
+            print("SoundService: the audio engine for pitched sounds did not start (\(error.localizedDescription))")
+            #endif
+            return false
         }
     }
 
