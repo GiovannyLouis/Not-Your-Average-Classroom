@@ -8,5 +8,6 @@
 enum MinigameState: Equatable {
     case ready                 // level built, waiting for the first move
     case playing               // clock is running
-    case ended(Outcome)        // short result pause, then a fresh run starts by itself
+    case ended(Outcome)        // over: the chicken cannot move, but the world goes on.
+                               // After a death a fresh run starts by itself, a win stays as it is
 }

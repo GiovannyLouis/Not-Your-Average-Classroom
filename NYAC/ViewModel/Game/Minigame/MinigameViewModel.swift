@@ -22,6 +22,9 @@ final class MinigameViewModel: ObservableObject {
     /// The way the chicken faces: the way it last hopped (forward when a run starts). The scene turns the picture to it.
     private(set) var facing: Move = .up
 
+    /// After a hit by a car: which car, and where the chicken ran into it. Nil in every other state.
+    private(set) var crash: Crash?
+
     /// How far along the level the chicken is: 0 on the start row, 1 on the finish row.
     /// It goes back down when the chicken hops back, and resets with a new run.
     var progress: Double {
@@ -76,7 +79,7 @@ final class MinigameViewModel: ObservableObject {
         facing = direction                                 // it faces the way it went
         // The hop first, then whatever it lands on (a hit, a splash). Its pitch goes with the way the chicken now faces.
         playSound(.hop, pitch: SoundConfig.hopPitch(facing: facing))
-        resolveHazards()
+        resolveHazards(after: direction)
         if state == .playing && playerRow == rows.count - 1 { finish(.won) }
     }
 
@@ -87,8 +90,10 @@ final class MinigameViewModel: ObservableObject {
 
         switch state {
         case .ended(let outcome):
-            // Dying restarts the run after a short pause. A win is final: the game has marked
-            // this objective as done, so the run stays exactly as it is.
+            // The world does not stop for the end of a run, only the chicken does: the cars and logs keep going
+            // (and the scene plays the outcome on top of them). Dying restarts the run after a short while.
+            // A win is final: the game has marked this objective as done, so the run stays as it is.
+            advanceWorld(by: dt)
             guard outcome != .won else { return }
             restartCountdown -= dt
             if restartCountdown <= 0 { startNewRun() }
@@ -103,7 +108,7 @@ final class MinigameViewModel: ObservableObject {
 
             advanceWorld(by: dt)
             if ridingLog { playerX += lane.direction.sign * lane.speed * CGFloat(dt) }
-            resolveHazards()
+            resolveHazards(after: nil)
         }
     }
 
@@ -113,7 +118,8 @@ final class MinigameViewModel: ObservableObject {
         for i in rows.indices { rows[i].advance(by: dt) }
     }
 
-    private func resolveHazards() {
+    /// `move` is the hop the chicken just made, or nil when the world moved into it (a car drove into the chicken).
+    private func resolveHazards(after move: Move?) {
         guard state == .playing else { return }
         let lane = rows[playerRow]
 
@@ -121,7 +127,9 @@ final class MinigameViewModel: ObservableObject {
         case .safe:
             break
         case .road:
-            if lane.isHit(at: playerX, radius: MinigameConfig.playerRadius) { finish(.hitByCar) }
+            if let car = lane.hitObstacle(at: playerX, radius: MinigameConfig.playerRadius) {
+                finish(.hitByCar, crash: makeCrash(into: car, in: lane, after: move))
+            }
         case .river:
             let onLog = lane.obstacle(under: playerX) != nil
             let onScreen = playerX >= 0 && playerX <= CGFloat(MinigameConfig.columns)
@@ -129,8 +137,30 @@ final class MinigameViewModel: ObservableObject {
         }
     }
 
-    private func finish(_ outcome: Outcome) {
+    /// Where on the car the chicken ran into it. The scene draws the chicken flattened against that spot.
+    private func makeCrash(into car: Obstacle, in lane: Row, after move: Move?) -> Crash {
+        let relative = playerX - car.x                  // where the chicken is along the car (negative = left of its center)
+        let half = car.width / 2
+
+        // The end of the car it ran into (+1 = the right end, -1 = the left end), or nil when it ran into the car's side.
+        let end: CGFloat?
+        switch move {
+        case .left?:        end = 1                     // hopped left into the car: it came from the right
+        case .right?:       end = -1
+        case .up?, .down?:  end = abs(relative) > half ? (relative > 0 ? 1 : -1) : nil    // landed just past the car's end
+        case nil:           end = lane.direction.sign   // the car drove into it: the front of the car
+        }
+
+        if let end {
+            return Crash(obstacleID: car.id, side: end == lane.direction.sign ? .front : .back, offset: 0)
+        }
+        // A hop up arrives at the side that faces down the screen, a hop down at the one that faces up.
+        return Crash(obstacleID: car.id, side: move == .up ? .bottom : .top, offset: min(max(relative, -half), half))
+    }
+
+    private func finish(_ outcome: Outcome, crash: Crash? = nil) {
         state = .ended(outcome)
+        self.crash = crash
         restartCountdown = MinigameConfig.restartDelay
 
         switch outcome {
@@ -154,6 +184,7 @@ final class MinigameViewModel: ObservableObject {
         playerRow = 0
         playerX = CGFloat(MinigameConfig.columns / 2) + 0.5    // middle cell of the start row
         facing = .up                                           // every run starts facing forward
+        crash = nil
         restartCountdown = 0
         state = .ready
     }

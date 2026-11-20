@@ -11,5 +11,5 @@ enum MinigameConfig {
     static let columns = 13
     static let generatedRowCount = 20          // plus a safe row at each end = 22 rows
     static let restartDelay: TimeInterval = 1.2
-    static let playerRadius: CGFloat = 0.3     // chicken size used for car collisions
+    static let playerRadius: CGFloat = 0.1     // character size used for car collisions
 }
