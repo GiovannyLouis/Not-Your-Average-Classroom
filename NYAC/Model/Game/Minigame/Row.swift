@@ -61,8 +61,13 @@ extension Row {
         obstacles.first { abs($0.x - x) <= $0.width / 2 }
     }
 
+    /// The car that overlaps a chicken of the given radius standing at `x`, if there is one.
+    func hitObstacle(at x: CGFloat, radius: CGFloat) -> Obstacle? {
+        obstacles.first { abs($0.x - x) < $0.width / 2 + radius }
+    }
+
     /// True when a car overlaps a chicken of the given radius standing at `x`.
     func isHit(at x: CGFloat, radius: CGFloat) -> Bool {
-        obstacles.contains { abs($0.x - x) < $0.width / 2 + radius }
+        hitObstacle(at: x, radius: radius) != nil
     }
 }
