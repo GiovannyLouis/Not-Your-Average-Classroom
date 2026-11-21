@@ -99,7 +99,8 @@ enum LecturerWalkLayout {
 
     // MARK: - Footsteps
 
-    // The speed of the steps is LecturerConfig.stepsPerSecond (the footstep sound will use it too).
+    // The speed of the steps is LecturerConfig.stepsPerSecond, and the number of steps of a walk is worked out from the
+    // walk's time (LecturerConfig.steps(inWalkOf:)). The footstep sound uses the same numbers.
 
     /// How high each step lifts him, in design units at scale 1. It grows with his size, so a step is bigger when he is close.
     static let stepHeight: CGFloat = 16
@@ -107,17 +108,19 @@ enum LecturerWalkLayout {
     /// A walk starts and ends this many seconds calmly, so he never jumps when he starts or stops.
     static let stepFadeTime: CGFloat = 0.3
 
-    /// How far up the footsteps lift him, `progress` of the way through a walk of `LecturerConfig.moveDuration`.
-    /// One bounce per step, always on the ground at the start and the end of the walk.
-    static func stepLift(progress: CGFloat, scale: CGFloat) -> CGFloat {
-        let total = CGFloat(LecturerConfig.moveDuration)
+    /// How far up the footsteps lift him, `progress` of the way through a walk that takes `walkDuration` seconds.
+    /// One bounce per step, always on the ground at the start and the end of the walk. The walk is always a whole number
+    /// of bounces long, so the last bounce ends right as he arrives, whatever the time of the walk is.
+    static func stepLift(progress: CGFloat, scale: CGFloat, walkDuration: TimeInterval) -> CGFloat {
+        let total = CGFloat(walkDuration)
         let seconds = progress * total
 
         let edge = max(min(seconds, total - seconds), 0)
         let fade = min(edge / stepFadeTime, 1)
         let smooth = fade * fade * (3 - 2 * fade)
 
-        let wave = abs(sin(CGFloat.pi * seconds * CGFloat(LecturerConfig.stepsPerSecond)))
+        let steps = CGFloat(LecturerConfig.steps(inWalkOf: walkDuration))
+        let wave = abs(sin(CGFloat.pi * steps * progress))
         return stepHeight * scale * wave * smooth
     }
 
@@ -147,9 +150,10 @@ enum LecturerWalkLayout {
         var closeness: CGFloat
     }
 
-    /// Where the lecturer is and how he looks. `progress` is how far through the walk he is (0...1).
+    /// Where the lecturer is and how he looks. `progress` is how far through the walk he is (0...1), and `walkDuration`
+    /// is how many seconds that walk takes (it differs from walk to walk, and sets the steps).
     /// Nil when he can't be seen: at A or D, or on the way between them.
-    static func pose(for state: LecturerState, progress: CGFloat) -> Pose? {
+    static func pose(for state: LecturerState, progress: CGFloat, walkDuration: TimeInterval) -> Pose? {
         switch state {
         case .staying(let spot):
             guard spot.isSafe else { return nil }
@@ -159,11 +163,11 @@ enum LecturerWalkLayout {
             let t = min(max(progress, 0), 1)
             switch (from.isSafe, to.isSafe) {
             case (true, true):
-                return crossing(from: side(of: from), to: side(of: to), progress: t)
+                return crossing(from: side(of: from), to: side(of: to), progress: t, walkDuration: walkDuration)
             case (true, false):
-                return toward(side: side(of: from), along: pow(t, acceleration), progress: t)
+                return toward(side: side(of: from), along: pow(t, acceleration), progress: t, walkDuration: walkDuration)
             case (false, true):
-                return away(side: side(of: to), along: pow(1 - t, acceleration), progress: t)
+                return away(side: side(of: to), along: pow(1 - t, acceleration), progress: t, walkDuration: walkDuration)
             case (false, false):
                 return nil
             }
@@ -188,31 +192,32 @@ enum LecturerWalkLayout {
     }
 
     /// B to C or C to B: along the line between the two spots, at a steady speed. The mirror image just goes the other way.
-    private static func crossing(from start: Side, to end: Side, progress t: CGFloat) -> Pose {
+    private static func crossing(from start: Side, to end: Side, progress t: CGFloat, walkDuration: TimeInterval) -> Pose {
         let startX = sign(of: start) * standX
         let endX = sign(of: end) * standX
 
         return Pose(feet: CGPoint(x: startX + (endX - startX) * t, y: standFeetY),
-                    lift: stepLift(progress: t, scale: 1), scale: 1, z: standZ,
+                    lift: stepLift(progress: t, scale: 1, walkDuration: walkDuration), scale: 1, z: standZ,
                     facing: .front, isMirrored: start == .right, closeness: 0)
     }
 
     /// B to A or C to D: `f` is how far he is along the way (0 at the spot, 1 at the player's side).
-    private static func toward(side: Side, along f: CGFloat, progress t: CGFloat) -> Pose {
-        placed(side: side, along: f, facing: .front, isMirrored: side == .left, progress: t)
+    private static func toward(side: Side, along f: CGFloat, progress t: CGFloat, walkDuration: TimeInterval) -> Pose {
+        placed(side: side, along: f, facing: .front, isMirrored: side == .left, progress: t, walkDuration: walkDuration)
     }
 
     /// A to B or D to C: the same way, walked backwards, seen from behind.
-    private static func away(side: Side, along f: CGFloat, progress t: CGFloat) -> Pose {
-        placed(side: side, along: f, facing: .back, isMirrored: side == .right, progress: t)
+    private static func away(side: Side, along f: CGFloat, progress t: CGFloat, walkDuration: TimeInterval) -> Pose {
+        placed(side: side, along: f, facing: .back, isMirrored: side == .right, progress: t, walkDuration: walkDuration)
     }
 
-    private static func placed(side: Side, along f: CGFloat, facing: Facing, isMirrored: Bool, progress t: CGFloat) -> Pose {
+    private static func placed(side: Side, along f: CGFloat, facing: Facing, isMirrored: Bool,
+                               progress t: CGFloat, walkDuration: TimeInterval) -> Pose {
         let scale = 1 + (arrivalScale - 1) * f
 
         return Pose(feet: CGPoint(x: sign(of: side) * (standX + (arrivalX - standX) * f),
                                   y: standFeetY + (arrivalFeetY - standFeetY) * f),
-                    lift: stepLift(progress: t, scale: scale),
+                    lift: stepLift(progress: t, scale: scale, walkDuration: walkDuration),
                     scale: scale,
                     z: z(atScale: scale),
                     facing: facing,
