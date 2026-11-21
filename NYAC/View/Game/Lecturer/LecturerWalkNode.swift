@@ -5,7 +5,6 @@
 //  Created by Vrz on 15/11/26.
 //
 
-
 import SpriteKit
 
 /// The lecturer as a figure in the classroom: the sprite that stands at B or C and walks to the next spot.
@@ -71,7 +70,8 @@ final class LecturerWalkNode: SKNode {
 
     /// Puts the lecturer where he is right now. The scene calls this every frame.
     func sync() {
-        guard let pose = LecturerWalkLayout.pose(for: lecturer.state, progress: CGFloat(lecturer.progress)) else {
+        guard let pose = LecturerWalkLayout.pose(for: lecturer.state, progress: CGFloat(lecturer.progress),
+                                                 walkDuration: lecturer.phaseDuration) else {
             isHidden = true
             closeness = 0
             return

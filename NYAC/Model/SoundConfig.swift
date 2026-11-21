@@ -68,11 +68,14 @@ enum SoundConfig {
     /// How the footsteps file is played while the lecturer walks.
     enum FootstepsPlayback {
         /// The file is looped for as long as the walk lasts and stops when he arrives. Use this when footsteps.* is
-        /// a recording of several steps in a row. (Its own tempo is the file's: it does not follow stepsPerSecond.)
+        /// a recording of several steps in a row. (Its own tempo is the file's: it does not follow stepsPerSecond, and
+        /// it is simply stopped when he arrives, however long that walk was.)
         case loop
 
         /// The file is played once for every step, at the tempo of LecturerConfig.stepsPerSecond, at the moment
-        /// each step touches the ground (the lowest point of his bounce). Use this when footsteps.* is ONE step.
+        /// each step touches the ground (the lowest point of his bounce). Every walk has a whole number of steps, so the
+        /// last one is as he arrives, however long the walk is (LecturerConfig.steps(inWalkOf:)).
+        /// Use this when footsteps.* is ONE step.
         case perStep
     }
 
