@@ -36,17 +36,21 @@ struct MinigameView: View {
     @ViewBuilder
     private var resultLabel: some View {
         if case .ended(let outcome) = viewModel.state {
-            if let size = MinigameLayout.outcomeImageSize(for: outcome) {
-                Image(MinigameLayout.outcomeAssetName(for: outcome))
-                    .resizable()
-                    .frame(width: size.width, height: size.height)
-            } else {
-                Text(message(for: outcome))
-                    .font(.system(size: 34, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(Color.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 12))
+            ZStack {
+                Color.black.opacity(0.3)
+                
+                if let size = MinigameLayout.outcomeImageSize(for: outcome) {
+                    Image(MinigameLayout.outcomeAssetName(for: outcome))
+                        .resizable()
+                        .frame(width: size.width, height: size.height)
+                } else {
+                    Text(message(for: outcome))
+                        .font(.system(size: 34, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 12))
+                }
             }
         }
     }
