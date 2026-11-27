@@ -31,47 +31,48 @@ struct GameOverView: View {
     private var card: some View {
         VStack(spacing: 14) {
             Text(content.title)
-                .font(.system(size: 64))
+                .font(UIFont.title(size: 62))
 
             Text(content.message)
-                .font(.system(size: 18))
+                .font(UIFont.body(size: 18))
                 .multilineTextAlignment(.center)
 
             // This run's time and the record, side by side. Either one can be missing (a time up has no time of its own,
             // and the record does not exist until the first win), and the one that is left takes the whole width.
             if content.stat != nil || content.bestStat != nil {
-                HStack(spacing: 16) {
+                HStack(spacing: 18) {
                     if let stat = content.stat {
-                        statBox(stat)
+                        statBox(stat, seed: 11)
                     }
                     if let bestStat = content.bestStat {
-                        statBox(bestStat)
+                        statBox(bestStat, seed: 29)
                     }
                 }
                 .padding(.horizontal, 24)       // a bit narrower than the card, like the sketch
                 .padding(.top, 14)
             }
 
-            PillButton(title: "Back to Lobby", action: onBackToLobby)
-                .padding(.top, 4)
+            CutoutButton(title: "Back to Lobby", action: onBackToLobby)
+                .padding(.top, 8)
         }
         .cardStyle()
     }
 
-    private func statBox(_ stat: GameOverContent.Stat) -> some View {
-        VStack(spacing: 2) {
+    /// A piece of paper with a label and a time. Every box gets its own seed, so the two next to each other are cut differently.
+    private func statBox(_ stat: GameOverContent.Stat, seed: Int) -> some View {
+        VStack(spacing: 4) {
             Text(stat.label)
-                .font(.system(size: 18))
+                .font(UIFont.body(size: 17))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)        // "New best completion time!" is the longest label
             Text(stat.value)
-                .font(.system(size: 26))
+                .font(UIFont.bold(size: 26))
                 .monospacedDigit()
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
         .padding(.horizontal, 8)
-        .overlay(RoundedRectangle(cornerRadius: 22).stroke(.black, lineWidth: 5))
+        .cutoutBoxStyle(seed: seed)
     }
 }
 

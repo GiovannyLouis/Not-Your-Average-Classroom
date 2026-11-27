@@ -175,8 +175,15 @@ final class GameViewModel {
         peek.recenter()
         lastPeekMode = peek.mode
 
-        // The countdown waits for the study text, so it only begins once the text is written.
+        // While the text is being written the scene stays still: no parallax and no peeking, so the player cannot look
+        // at the lecturer before the countdown, and nothing moves while the machine is busy writing (that was the frame drop).
+        peek.freeze()
+
         await study.loadNewText()
+
+        // The head moves the scene again from here, also when the player already left (stop() lets go of it too).
+        // If the head is up by now, the first frame brings the peek pose back, so the countdown starts as the head is.
+        peek.unfreeze()
         guard !Task.isCancelled else { return }     // the player already left
 
         await countDown()
@@ -192,6 +199,7 @@ final class GameViewModel {
         progressHideTask?.cancel()
         progressHideTask = nil
         lecturer.isActive = false       // also silences his footsteps: the scene is gone, so nothing would stop them otherwise
+        peek.unfreeze()                 // the camera is the app's: leaving while still preparing must not leave the lobby's head tracking held
     }
 
     /// Leaves the run. Where that leads is up to whoever owns it (see `onBackToLobby`).

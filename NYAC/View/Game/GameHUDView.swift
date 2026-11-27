@@ -48,7 +48,7 @@ struct GameHUDView: View {
     /// It fades instead of leaving, so the progress card under it stays where it is.
     private var menuHint: some View {
         Text("Press Esc to open menu")
-            .font(.system(size: 14))
+            .font(UIFont.body(size: 14))
             .foregroundStyle(.white.opacity(0.85))
             .padding(.horizontal, 12)
             .padding(.vertical, 6)

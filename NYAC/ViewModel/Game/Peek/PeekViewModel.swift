@@ -69,6 +69,10 @@ final class PeekViewModel {
     @ObservationIgnored private var lockedBox: CGRect?
     @ObservationIgnored private var missedFrames = 0
 
+    /// While true the pose stays at focus and the head offset at zero, whatever the head does (see `freeze`).
+    /// Only `handle` reads it, so nothing observes it.
+    @ObservationIgnored private var isFrozen = false
+
     init(settings: GameSettings) {
         self.settings = settings
 
@@ -122,6 +126,21 @@ final class PeekViewModel {
         headOffset = .zero
     }
 
+    /// Holds the pose at focus and the head offset at zero, so nothing that follows the head moves, and peeking does nothing.
+    /// The camera, the face lock and the sideways calibration carry on underneath, so the first frame after `unfreeze`
+    /// already has the right pose and offset. A run uses this while it is still getting ready (the study text is being
+    /// written and the player must not be able to look at the lecturer yet).
+    func freeze() {
+        isFrozen = true
+        mode = .focus
+        headOffset = .zero
+    }
+
+    /// Lets the head move the scene again. The next frame from the camera brings the real pose and offset back.
+    func unfreeze() {
+        isFrozen = false
+    }
+
     // MARK: - Cameras
 
     /// Reads the list of cameras again. If the camera in use is a different one now (the chosen one was unplugged, or came back,
@@ -162,6 +181,9 @@ final class PeekViewModel {
         let face = CGPoint(x: box.midX, y: box.midY)
         lastFaceX = face.x
         if neutralX == nil { neutralX = face.x }   // first detection auto-calibrates sideways
+
+        // Frozen: the face is still followed and calibrated above, but the pose and the offset stay where `freeze` put them.
+        guard !isFrozen else { return }
 
         // Switch focus and peek with minimum jitter, but extra effort.
         // Switch to the commented below and comment this one if prefer an absolute change instead

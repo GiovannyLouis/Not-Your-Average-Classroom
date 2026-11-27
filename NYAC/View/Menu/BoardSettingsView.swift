@@ -40,7 +40,7 @@ struct BoardSettingsView: View {
                     row("Sensitivity", value: Bindable(settings).sensitivity, range: GameSettings.sensitivityRange)
 
                     Text("Move your head from side to side and watch the desks.")
-                        .font(.system(size: 28))
+                        .font(UIFont.body(size: 28))
                         .foregroundStyle(.black.opacity(0.6))
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -65,7 +65,7 @@ struct BoardSettingsView: View {
                 Text(String(format: "%.2f", value.wrappedValue))
                     .monospacedDigit()
             }
-            .font(.system(size: 38))
+            .font(UIFont.body(size: 38))
 
             BoardSlider(value: value, range: range)
         }

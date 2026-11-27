@@ -13,7 +13,7 @@ enum Sound: String, CaseIterable {
     /// The music of the main screen and its settings. It loops.
     case bgm
 
-    /// Any UI button (PillButton and BoardButton).
+    /// Any UI button (CutoutButton, which BoardButton is made of).
     case click
 
     /// The run ended: the player won, or lost (caught, or time is up).

@@ -32,14 +32,14 @@ struct GameMenuView: View {
     private var mainCard: some View {
         VStack(spacing: 18) {
             Text("Menu")
-                .font(.system(size: 44))
+                .font(UIFont.title(size: 44))
 
-            PillButton(title: "Settings") { game.openSettings() }
-            PillButton(title: "Back to Lobby") { game.backToLobby() }
+            CutoutButton(title: "Settings") { game.openSettings() }
+            CutoutButton(title: "Back to Lobby") { game.backToLobby() }
 
             Text("Press Esc to close")
-                .font(.system(size: 14))
-                .foregroundStyle(.gray)
+                .font(UIFont.body(size: 14))
+                .foregroundStyle(PaperPalette.inkSoft)
                 .padding(.top, 4)
         }
         .cardStyle(width: 420)

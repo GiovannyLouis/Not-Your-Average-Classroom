@@ -60,7 +60,7 @@ struct GameView: View {
     private var cameraWarning: some View {
         if game.peek.cameraDenied {
             Text("Camera access denied. Allow it in System Settings > Privacy & Security > Camera.")
-                .font(.callout)
+                .font(UIFont.body(size: 14))
                 .foregroundStyle(.red)
                 .frame(maxWidth: 260, alignment: .leading)
                 .padding()

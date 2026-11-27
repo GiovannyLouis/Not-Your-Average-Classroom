@@ -5,14 +5,17 @@
 //  Created by Vrz on 17/11/26.
 //
 
-
 import SwiftUI
 
-/// Chooses the camera, in the board's style: an outlined pill with the name of the camera in use, and a menu with all of
-/// them. Picking one switches the camera right away, so the camera view next to it shows the new one.
-/// Sizes are in design units (see MenuLayout), the page is scaled as a whole. The in-game settings card has a plain Picker instead.
+/// Chooses the camera: a piece of cut paper with the name of the camera in use, and a menu with all of them. Picking one
+/// switches the camera right away, so the camera view next to it shows the new one.
+/// Used by the settings page on the board (sizes are in design units, see MenuLayout, the page is scaled as a whole)
+/// and by the in-game settings card.
 struct BoardCameraPicker: View {
     let peek: PeekViewModel
+
+    /// How the edges of its paper are cut.
+    private static let seed = 53
 
     var body: some View {
         Menu {
@@ -32,20 +35,12 @@ struct BoardCameraPicker: View {
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.up.chevron.down")
             }
-            .font(.system(size: 16))
-            .foregroundStyle(.black)
+            .font(UIFont.body(size: 16))
+            .foregroundStyle(PaperPalette.ink)
             .padding(.horizontal, 22)
             .frame(height: 40)
-            .overlay(Capsule().stroke(.black, lineWidth: 3))
-            .background(
-                Capsule()
-                    .fill(.white.opacity(0.92))
-            )
-            .overlay(
-                Capsule()
-                    .strokeBorder(.black, lineWidth: 2)
-            )
-            .contentShape(Capsule())
+            .cutoutBoxStyle(seed: Self.seed, weight: .hud)
+            .contentShape(HandCutRectShape(seed: Self.seed, cornerCut: PaperWeight.hud.cornerCut, wobble: PaperWeight.hud.wobble))
         }
         .menuStyle(.button)
         .buttonStyle(.plain)

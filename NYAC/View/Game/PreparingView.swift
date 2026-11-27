@@ -5,7 +5,6 @@
 //  Created by Vrz on 08/11/26.
 //
 
-
 import SwiftUI
 
 /// Shown in front of the game while it gets ready (the study text is being written). The countdown takes over once it is done.
@@ -20,8 +19,8 @@ struct PreparingView: View {
                     .environment(\.colorScheme, .dark)
 
                 Text("Preparing…")
-                    .font(.system(size: 48, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .font(UIFont.title(size: 48))
+                    .foregroundStyle(PaperPalette.cardFill)
                     .shadow(radius: 8)
             }
         }
