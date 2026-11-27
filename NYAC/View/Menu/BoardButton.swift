@@ -10,53 +10,28 @@ import AppKit
 
 // The pieces the pages on the board are made of. Their sizes are in design units (see MenuLayout), the page is scaled as a whole.
 
-/// A black rounded button with white text, like on the mock-up. "Start" and "Settings" are the same button in two sizes.
-/// It clicks when it is pressed.
+/// The game's button (CutoutButton) at the size of the board: "Start" and "Settings" are the same button in two sizes.
+/// Its look grows with `fontSize`, so a big button has the same cut paper as a small one. It clicks when it is pressed.
 struct BoardButton: View {
     let title: String
     let size: CGSize
     let fontSize: CGFloat
     let action: () -> Void
 
-    private let color = Color(red: 0, green: 0.008, blue: 0.04)
-
     var body: some View {
-        // 0.20 matches the hi-fi button corners; keep 0.32 if you prefer rounder ends.
-        let shape = RoundedRectangle(cornerRadius: size.height * 0.20)
-
-        Button {
-            SoundService.shared.play(.click)
-            action()
-        } label: {
-            Text(title)
-                .font(.system(size: fontSize, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: size.width, height: size.height)
-                .background(color, in: shape)
-                .contentShape(shape)
-        }
-        .buttonStyle(BoardButtonStyle())
+        CutoutButton(title: title, fontSize: fontSize, size: size, action: action)
     }
 }
 
-/// A button that gives a little when it is pressed.
-private struct BoardButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .opacity(configuration.isPressed ? 0.85 : 1)
-    }
-}
-
-/// Text in the title's hand lettering. The real lettering is a picture or a font that is not in the project yet,
-/// so this is the stand-in (MenuLayout.titleFontName), and it is also what the page titles use.
+/// Text in the title's lettering: the game's title font (UIFont.title). The real lettering may be a picture later,
+/// which is what BoardGameTitle already looks for, and this is also what the page titles use.
 struct BoardTitleText: View {
     let text: String
     var size: CGFloat = MenuLayout.titleFontSize
 
     var body: some View {
         Text(text)
-            .font(.custom(MenuLayout.titleFontName, size: size))
+            .font(UIFont.title(size: size))
             .multilineTextAlignment(.center)
             .foregroundStyle(.black)
             .fixedSize()

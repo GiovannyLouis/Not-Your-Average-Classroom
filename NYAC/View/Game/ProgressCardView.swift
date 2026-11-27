@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-/// The progress tracker: a dark card titled PROGRESS, with one row per objective and a checkbox at the end of the row.
-/// A row is white while its objective is in progress. Once the objective is done, its text and its checkbox turn green.
+/// The progress tracker: a piece of cut paper titled PROGRESS, with one row per objective and a checkbox at the end of the row.
+/// A row is in ink while its objective is in progress. Once the objective is done, its text and its checkbox turn green.
 ///
 /// Pure display: the game decides what is done and when the card should be visible, this view draws and fades it.
 struct ProgressCardView: View {
@@ -26,7 +26,7 @@ struct ProgressCardView: View {
 
     // MARK: - Look
 
-    /// The SF Symbols of the checkbox. For a filled green square with a white tick, use "checkmark.app.fill" instead.
+    /// The SF Symbols of the checkbox. For a filled green square with a tick, use "checkmark.app.fill" instead.
     private static let emptyBox = "app"
     private static let checkedBox = "checkmark.app"
 
@@ -38,7 +38,7 @@ struct ProgressCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("PROGRESS")
-                .font(.system(size: 20))
+                .font(UIFont.bold(size: 20))
                 .foregroundStyle(.white)
 
             // The line under the title.
@@ -68,7 +68,7 @@ struct ProgressCardView: View {
             Image(systemName: item.isDone ? Self.checkedBox : Self.emptyBox)
                 .imageScale(.large)
         }
-        .font(.system(size: 18))
+        .font(UIFont.body(size: 18))
         .foregroundStyle(item.isDone ? Self.doneColor : Color.white)
         .animation(.easeOut(duration: 0.1), value: item.isDone)
     }

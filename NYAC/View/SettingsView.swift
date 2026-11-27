@@ -23,7 +23,7 @@ struct SettingsView: View {
     var body: some View {
         VStack(spacing: 22) {
             Text("Settings")
-                .font(.system(size: 44))
+                .font(UIFont.title(size: 44))
 
             // Above the y threshold, so the yellow line can be checked against the face while the slider moves.
             CameraPiPView(peek: peek, settings: settings, size: CGSize(width: 320, height: 240))
@@ -32,13 +32,15 @@ struct SettingsView: View {
                 cameraRow
                 row("Y Threshold", value: settings.thresholdY) {
                     Slider(value: Bindable(settings).thresholdY, in: GameSettings.thresholdYRange)
+                        .tint(PaperPalette.ink)
                 }
                 row("Sensitivity", value: settings.sensitivity) {
                     Slider(value: Bindable(settings).sensitivity, in: GameSettings.sensitivityRange)
+                        .tint(PaperPalette.ink)
                 }
             }
 
-            PillButton(title: "Back", action: onBack)
+            CutoutButton(title: "Back", action: onBack)
                 .padding(.top, 4)
         }
         .cardStyle(width: 560)
@@ -46,27 +48,14 @@ struct SettingsView: View {
 
     /// Which camera to use. Picking one switches the camera right away, so the camera view above shows the new one.
     /// This is where a player whose default camera is not a real one (a virtual camera, say) picks their own.
-    @ViewBuilder
+    /// The picker says "No camera found" (and is greyed out) when the Mac has none.
     private var cameraRow: some View {
         HStack(spacing: 14) {
             Text("Camera")
-                .font(.system(size: 18))
+                .font(UIFont.body(size: 18))
                 .frame(width: 120, alignment: .leading)
 
-            if peek.cameras.isEmpty {
-                Text("No camera found")
-                    .font(.system(size: 18))
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                Picker("Camera", selection: Binding(get: { peek.activeCameraID ?? "" }, set: { peek.selectCamera($0) })) {
-                    ForEach(peek.cameras) { camera in
-                        Text(camera.name).tag(camera.id)
-                    }
-                }
-                .labelsHidden()
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            BoardCameraPicker(peek: peek)
         }
     }
 
@@ -74,11 +63,11 @@ struct SettingsView: View {
     private func row<Content: View>(_ label: String, value: CGFloat, @ViewBuilder control: () -> Content) -> some View {
         HStack(spacing: 14) {
             Text(label)
-                .font(.system(size: 18))
+                .font(UIFont.body(size: 18))
                 .frame(width: 120, alignment: .leading)
             control()
             Text(String(format: "%.2f", value))
-                .font(.system(size: 18))
+                .font(UIFont.body(size: 18))
                 .monospacedDigit()
                 .frame(width: 44, alignment: .trailing)
         }
